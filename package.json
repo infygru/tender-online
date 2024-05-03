@@ -2,9 +2,9 @@
   "name": "tender-api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "nodemon src/index.ts",
+    "start": "nodemon dist/index.js",
     "dev": "ts-node src/index.ts",
     "build": "rimraf dist && tsc",
     "ts.check": "tsc --project tsconfig.json",
