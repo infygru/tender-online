@@ -892,10 +892,10 @@ mongodb@6.5.0:
     bson "^6.4.0"
     mongodb-connection-string-url "^3.0.0"
 
-mongoose@^8.3.2:
-  version "8.3.2"
-  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-8.3.2.tgz#88d7eceecb1284c67c0d2e64d352442bc75f0aae"
-  integrity sha512-3JcpDjFI25cF/3xpu+4+9nM0lURQTNLcP86X83+LvuICdn453QQLmhSrUr2IPM/ffLiDE9KPl9slNb2s0hZPpg==
+mongoose@^8.3.3:
+  version "8.3.3"
+  resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-8.3.3.tgz#3dc1ffe76c6c92e5d5c25b61aed221d11d420632"
+  integrity sha512-3kSk0db9DM2tLttCdS6WNRqewPleamFEa4Vz/Qldc0dB4Zow/FiZxb9GExHTJjBZQ9T2xiGleQ3GzRrES3hhsA==
   dependencies:
     bson "^6.5.0"
     kareem "2.6.3"
@@ -1179,6 +1179,7 @@ statuses@2.0.1:
   integrity sha512-RwNA9Z/7PrK06rYLIzFMlaF+l73iwpzsqRIFgbMLbTcLD6cOao82TaWefPXQvB2fOC4AjuYSEndS7N/mTCbkdQ==
 
 "string-width-cjs@npm:string-width@^4.2.0", string-width@^4.1.0:
+  name string-width-cjs
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -1197,6 +1198,7 @@ string-width@^5.0.1, string-width@^5.1.2:
     strip-ansi "^7.0.1"
 
 "strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@^6.0.0, strip-ansi@^6.0.1:
+  name strip-ansi-cjs
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
