@@ -17,6 +17,8 @@ const userRoute = express.Router();
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const User = require("../model/user.model");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const otpTemplate_1 = require("../templete/otpTemplate");
+const { transporter } = require("../nodemailer");
 userRoute.post("/create/account", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { phone, email, msmeNo, password, subscriptionPackage, name, username, gstNo, } = req.body;
@@ -75,6 +77,65 @@ userRoute.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, functio
     catch (error) {
         console.error(error);
         res.status(500).send("Error logging in.");
+    }
+}));
+userRoute.post("/otp", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const email = req.body.email;
+        if (!("email" in req.body)) {
+            return res.status(400).json({
+                status: "failed",
+                status_code: 400,
+                message: "email keyword Does Not Exist In Request",
+                result: {},
+            });
+        }
+        // req.body.email = user_data.email
+        // OTP handler
+        var digits = "0123456789";
+        let OTP = "";
+        for (let i = 0; i < 6; i++) {
+            OTP += digits[Math.floor(Math.random() * 10)];
+        }
+        let sendMessage = {
+            from: "no-reply@gmail.com",
+            to: email,
+            subject: ` ${OTP}  is Your OTP for Authentication at MightyPlanet`,
+            html: (0, otpTemplate_1.Otp_template)(OTP),
+        };
+        transporter.sendMail(sendMessage, function (err, info) {
+            console.log("err ********", err);
+            console.log("info ********", info);
+            if (err) {
+                console.log(err);
+                return res.status(400).send({
+                    status: "failed",
+                    status_code: 400,
+                    message: err,
+                    result: {},
+                });
+            }
+            else {
+                return res.status(200).send({
+                    status: "success",
+                    status_code: 200,
+                    message: "mail send successfully",
+                    result: [
+                        {
+                            otp: OTP,
+                        },
+                    ],
+                });
+            }
+        });
+    }
+    catch (err) {
+        return res.status(400).send({
+            status: "failed",
+            status_code: 400,
+            message: "Something went wrong!",
+            result: {},
+        });
     }
 }));
 module.exports = userRoute;
