@@ -159,4 +159,20 @@ tenderRoute.delete("/delete/:id", async (req: Request, res: Response) => {
   }
 });
 
+// delete all data
+
+tenderRoute.delete("/delete", async (req: Request, res: Response) => {
+  try {
+    const tenders = await Tender.deleteMany({});
+    res.status(200).json({
+      message: "All tenders deleted successfully.",
+      result: tenders,
+      code: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error deleting tenders. Please try again.");
+  }
+});
+
 module.exports = tenderRoute;
