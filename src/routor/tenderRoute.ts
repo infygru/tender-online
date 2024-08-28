@@ -160,7 +160,6 @@ tenderRoute.delete("/delete/:id", async (req: Request, res: Response) => {
 });
 
 // delete all data
-
 tenderRoute.delete("/delete", async (req: Request, res: Response) => {
   try {
     const tenders = await Tender.deleteMany({});
