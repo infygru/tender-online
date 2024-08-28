@@ -44,12 +44,16 @@ tenderRoute.post("/create", async (req: Request, res: Response) => {
 
 // Convert Excel date number to JavaScript Date
 const excelDateToFormattedDate = (excelDate: number): string => {
+  if (isNaN(excelDate) || excelDate < 0) {
+    return "refer document";
+  }
+
   const epoch = new Date(1899, 11, 30); // Excel's epoch date
   const date = new Date(epoch.getTime() + (excelDate - 1) * 86400000); // Convert days to milliseconds
+
   const day = date.getUTCDate().toString().padStart(2, "0");
   const month = (date.getUTCMonth() + 1).toString().padStart(2, "0"); // Months are zero-based
   const year = date.getUTCFullYear();
-  console.log("Date:", date, "Day:", day, "Month:", month, "Year:", year);
 
   return `${day}/${month}/${year}`;
 };
@@ -61,7 +65,7 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
     const tenders = req.body.map((tender: any) => ({
       tenderName: tender["TenderName"],
       description: tender["Description"] || "",
-      epublishedDate: new Date(tender["PublishedDate"]),
+      epublishedDate: tender["PublishedDate"],
       refNo: tender["ReferenceNo"],
       TenderId: tender["TenderID"],
       district: tender["District"],
@@ -72,8 +76,8 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
       address: tender["Address"],
       pincode: parseInt(tender["Pincode"]),
       tenderValue: parseFloat(tender["TenderValue(₹)"]),
-      bidOpeningDate: new Date(tender["BidOpeningDate"]),
-      bidSubmissionDate: new Date(tender["BidSubmissionEndDate"]),
+      bidOpeningDate: tender["BidOpeningDate"],
+      bidSubmissionDate: tender["BidSubmissionEndDate"],
     }));
 
     const result = await Tender.insertMany(tenders);

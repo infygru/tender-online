@@ -3,9 +3,9 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface TenderDocument extends Document {
   tenderName: string;
   description?: string;
-  epublishedDate: Date;
-  bidSubmissionDate: Date;
-  bidOpeningDate: Date;
+  epublishedDate: string;
+  bidSubmissionDate: string;
+  bidOpeningDate: string;
   tenderValue: string;
   refNo: string;
   TenderId: string;
@@ -29,15 +29,15 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
     required: false,
   },
   epublishedDate: {
-    type: Date,
+    type: String,
     required: false,
   },
   bidSubmissionDate: {
-    type: Date,
+    type: String,
     required: true,
   },
   bidOpeningDate: {
-    type: Date,
+    type: String,
     required: true,
   },
   tenderValue: {
