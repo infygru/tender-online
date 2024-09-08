@@ -102,30 +102,40 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
     // Global search filter (searches in multiple fields)
     if (search) {
       filter.$or = [
-        { tenderName: { $regex: search, $options: "i" } }, // Case-insensitive search
+        { tenderName: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
         { refNo: { $regex: search, $options: "i" } },
       ];
     }
 
-    // Specific filters
+    // District filter (supports multiple values)
     if (district) {
-      filter.district = { $regex: district, $options: "i" };
+      const districtsArray = (district as string).split(",");
+      filter.district = { $in: districtsArray.map((d) => new RegExp(d, "i")) };
     }
 
+    // Tender Value filter (supports multiple values)
     if (tenderValue) {
-      filter.tenderValue = tenderValue;
+      const tenderValueArray = (tenderValue as string).split(",");
+      filter.tenderValue = { $in: tenderValueArray };
     }
 
+    // Department filter (supports multiple values)
     if (department) {
-      filter.department = { $regex: department, $options: "i" };
+      const departmentsArray = (department as string).split(",");
+      filter.department = {
+        $in: departmentsArray.map((d) => new RegExp(d, "i")),
+      };
     }
 
+    // Status filter (supports multiple values)
     if (status) {
-      filter.status = { $regex: status, $options: "i" };
+      const statusArray = (status as string).split(",");
+      filter.status = { $in: statusArray.map((s) => new RegExp(s, "i")) };
     }
 
     console.log("Filter:", JSON.stringify(filter, null, 2)); // Log filter for debugging
+
     // Fetch filtered tenders from MongoDB
     const tenders = await Tender.find(filter);
 
