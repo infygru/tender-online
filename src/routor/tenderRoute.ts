@@ -116,8 +116,55 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
 
     // Tender Value filter (supports multiple values)
     if (tenderValue) {
+      const TenderValue = [
+        { value: "1", label: "Less than ₹10L", minValue: 0, maxValue: 1000000 },
+        {
+          value: "2",
+          label: "₹10L - ₹1Cr",
+          minValue: 1000000,
+          maxValue: 10000000,
+        },
+        {
+          value: "3",
+          label: "₹1Cr - ₹100Cr",
+          minValue: 10000000,
+          maxValue: 1000000000,
+        },
+        { value: "4", label: "More than ₹100Cr", minValue: 1000000000 },
+      ];
+
+      // Split tenderValue into an array if it's a comma-separated string
       const tenderValueArray = (tenderValue as string).split(",");
-      filter.tenderValue = { $in: tenderValueArray };
+
+      // Create an array to hold the range filters
+      const tenderValueFilters: any[] = [];
+
+      tenderValueArray.forEach((value) => {
+        // Find the corresponding tender value range from TenderValue
+        const selectedValue = TenderValue.find((item) => item.value === value);
+
+        if (selectedValue) {
+          const rangeFilter: any = {};
+          if (selectedValue.minValue !== undefined) {
+            rangeFilter.$gte = selectedValue.minValue;
+          }
+          if (selectedValue.maxValue !== undefined) {
+            rangeFilter.$lte = selectedValue.maxValue;
+          }
+
+          // If a valid range filter is constructed, add it to the filters array
+          if (Object.keys(rangeFilter).length > 0) {
+            tenderValueFilters.push({ tenderValue: rangeFilter });
+          }
+        }
+      });
+
+      console.log(tenderValueFilters, "tenderValueFilters");
+
+      // Apply $or operator if there are multiple ranges selected
+      if (tenderValueFilters.length > 0) {
+        filter.$or = tenderValueFilters;
+      }
     }
 
     // Department filter (supports multiple values)
