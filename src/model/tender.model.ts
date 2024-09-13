@@ -87,7 +87,7 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
 });
 
 const Tender: Model<TenderDocument> = mongoose.model<TenderDocument>(
-  "Tendernew",
+  "Tendernew2",
   tenderSchema
 );
 
