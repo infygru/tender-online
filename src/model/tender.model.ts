@@ -51,7 +51,6 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
   TenderId: {
     type: String,
     required: true,
-    unique: true,
   },
   district: {
     type: String,
@@ -88,7 +87,7 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
 });
 
 const Tender: Model<TenderDocument> = mongoose.model<TenderDocument>(
-  "Tender",
+  "Tendernew",
   tenderSchema
 );
 

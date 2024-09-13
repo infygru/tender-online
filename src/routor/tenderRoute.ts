@@ -15,30 +15,29 @@ tenderRoute.post("/create", async (req: Request, res: Response) => {
     // Generate a unique TenderId
     while (!isUnique) {
       // Generate random number between 100 and 999 (to get three digits)
-      const randomNumber = generateRandomNumber(100, 999);
+      const randomNumber = generateRandomNumber(1, 999);
       TenderId = `TENDER${randomNumber}`;
 
-      // Check if TenderId already exists in the database
-      const existingTender = await Tender.findOne({ TenderId });
-      if (!existingTender) {
+      // Use atomic operation to check if TenderId exists and create the tender if unique
+      const result: any = await Tender.findOneAndUpdate(
+        { TenderId }, // Check if this TenderId exists
+        { $setOnInsert: { ...req.body, TenderId } }, // Insert if it doesn't exist
+        { upsert: true, new: true, rawResult: true } // Upsert and return the new document
+      );
+
+      if (result.lastErrorObject.updatedExisting === false) {
+        // If a new document was created, we found a unique TenderId
         isUnique = true;
+        res.status(201).json({
+          message: "Tender created successfully.",
+          result: result.value,
+          code: 201,
+        });
       }
     }
-
-    const newTender = new Tender({
-      ...req.body,
-      TenderId,
-    });
-
-    await newTender.save();
-    res.status(201).json({
-      message: "Tender created successfully.",
-      result: newTender,
-      code: 201,
-    });
   } catch (error) {
     console.error(error);
-    res.status(500).send("Error creating tender. please try again.");
+    res.status(500).send("Error creating tender. Please try again.");
   }
 });
 
