@@ -33,6 +33,7 @@ app.use(
       "https://tender-online-web.vercel.app",
       "https://tender-online-admin-ibob.vercel.app",
       "https://tender-online-web-l5ws.vercel.app",
+      "https://tenderonline.in/",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
