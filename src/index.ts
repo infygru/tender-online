@@ -36,6 +36,7 @@ app.use(
       "https://tenderonline.in/",
       "https://demo.tenderonline.in",
       "https://demo.tenderonline.in/",
+      "https://admin.tenderonline.co.in",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
