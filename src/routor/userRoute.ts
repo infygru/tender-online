@@ -143,7 +143,7 @@ userRoute.post("/admin/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    const AdminEmail = "tenderonline@admin.com";
+    const AdminEmail = "admin@tenderonline.in";
     const AdminPassword = "admin@123";
 
     if (email !== AdminEmail) {
