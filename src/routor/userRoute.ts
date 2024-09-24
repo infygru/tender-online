@@ -139,4 +139,29 @@ userRoute.post("/otp", async (req: Request, res: Response) => {
   }
 });
 
+userRoute.post("/admin/login", async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    const AdminEmail = "tenderonline@admin.com";
+    const AdminPassword = "admin@123";
+
+    if (email !== AdminEmail) {
+      return res.status(404).send("User not found.");
+    }
+
+    if (password !== AdminPassword) {
+      return res.status(401).send("Invalid password");
+    }
+
+    const token = jwt.sign({ email, password }, "secretkey", {
+      expiresIn: "354d",
+    });
+    res.status(200).send({ token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error logging in.");
+  }
+});
+
 module.exports = userRoute;
