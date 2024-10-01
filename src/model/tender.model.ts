@@ -17,6 +17,9 @@ export interface TenderDocument extends Document {
   address?: string;
   pincode: string;
   active?: boolean;
+  industry?: string;
+  subIndustry?: string;
+  classification?: string;
 }
 
 const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
@@ -84,10 +87,22 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  industry: {
+    type: String,
+    required: false,
+  },
+  subIndustry: {
+    type: String,
+    required: false,
+  },
+  classification: {
+    type: String,
+    required: false,
+  },
 });
 
 const Tender: Model<TenderDocument> = mongoose.model<TenderDocument>(
-  "Tendernew2",
+  "Tendernew4",
   tenderSchema
 );
 

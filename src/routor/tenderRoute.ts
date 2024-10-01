@@ -77,6 +77,9 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
       tenderValue: parseFloat(tender["TenderValue(₹)"]),
       bidOpeningDate: tender["BidOpeningDate"],
       bidSubmissionDate: tender["BidSubmissionEndDate"],
+      industry: tender["Industry"] || "",
+      subIndustry: tender["Sub-Industry"] || "",
+      classification: tender["Classification"] || "",
     }));
 
     const result = await Tender.insertMany(tenders);
