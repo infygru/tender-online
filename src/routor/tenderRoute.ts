@@ -225,6 +225,58 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
   }
 });
 
+tenderRoute.get("/industries", async (req: Request, res: Response) => {
+  try {
+    // Fetch all unique industries from the tenders collection
+    const industries = await Tender.distinct("industry");
+
+    // Map industries to the desired format
+    const formattedIndustries = industries.map((industry, index) => ({
+      value: industry.toLowerCase(), // Assign an incrementing value
+      label: industry, // Use the industry name as the label
+    }));
+
+    // Return the formatted industries in the response
+    res.status(200).json({
+      message: "Industries fetched successfully.",
+      industries: formattedIndustries,
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Error fetching industries:", error);
+    res.status(500).json({
+      message: "Error fetching industries. Please try again.",
+      error: error.message,
+    });
+  }
+});
+
+tenderRoute.get("/sub-industries", async (req: Request, res: Response) => {
+  try {
+    // Fetch all unique sub-industries from the tenders collection
+    const subIndustries = await Tender.distinct("subIndustry");
+
+    // Map sub-industries to the desired format
+    const formattedSubIndustries = subIndustries.map((subIndustry, index) => ({
+      value: subIndustry.toLowerCase(), // Assign an incrementing value
+      label: subIndustry, // Use the sub-industry name as the label
+    }));
+
+    // Return the formatted sub-industries in the response
+    res.status(200).json({
+      message: "Sub-industries fetched successfully.",
+      subIndustries: formattedSubIndustries,
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Error fetching sub-industries:", error);
+    res.status(500).json({
+      message: "Error fetching sub-industries. Please try again.",
+      error: error.message,
+    });
+  }
+});
+
 tenderRoute.delete("/delete/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
