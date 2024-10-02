@@ -96,7 +96,16 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
 
 tenderRoute.get("/all", async (req: Request, res: Response) => {
   try {
-    const { search, district, tenderValue, department, status } = req.query;
+    const {
+      search,
+      district,
+      tenderValue,
+      department,
+      status,
+      industry,
+      subIndustry,
+      classification,
+    } = req.query;
 
     // Construct the search filter
     const filter: any = {};
@@ -135,14 +144,10 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         { value: "4", label: "More than ₹100Cr", minValue: 1000000000 },
       ];
 
-      // Split tenderValue into an array if it's a comma-separated string
       const tenderValueArray = (tenderValue as string).split(",");
-
-      // Create an array to hold the range filters
       const tenderValueFilters: any[] = [];
 
       tenderValueArray.forEach((value) => {
-        // Find the corresponding tender value range from TenderValue
         const selectedValue = TenderValue.find((item) => item.value === value);
 
         if (selectedValue) {
@@ -154,19 +159,37 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
             rangeFilter.$lte = selectedValue.maxValue;
           }
 
-          // If a valid range filter is constructed, add it to the filters array
           if (Object.keys(rangeFilter).length > 0) {
             tenderValueFilters.push({ tenderValue: rangeFilter });
           }
         }
       });
 
-      console.log(tenderValueFilters, "tenderValueFilters");
-
-      // Apply $or operator if there are multiple ranges selected
       if (tenderValueFilters.length > 0) {
         filter.$or = tenderValueFilters;
       }
+    }
+
+    // Industry filter (supports multiple values)
+    if (industry) {
+      const industryArray = (industry as string).split(",");
+      filter.industry = { $in: industryArray.map((i) => new RegExp(i, "i")) };
+    }
+
+    // SubIndustry filter (supports multiple values)
+    if (subIndustry) {
+      const subIndustryArray = (subIndustry as string).split(",");
+      filter.subIndustry = {
+        $in: subIndustryArray.map((si) => new RegExp(si, "i")),
+      };
+    }
+
+    // Classification filter (supports multiple values)
+    if (classification) {
+      const classificationArray = (classification as string).split(",");
+      filter.classification = {
+        $in: classificationArray.map((c) => new RegExp(c, "i")),
+      };
     }
 
     // Department filter (supports multiple values)
