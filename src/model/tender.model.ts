@@ -4,8 +4,8 @@ export interface TenderDocument extends Document {
   tenderName: string;
   description?: string;
   epublishedDate: string;
-  bidSubmissionDate: string;
-  bidOpeningDate: string;
+  bidSubmissionDate: Date;
+  bidOpeningDate: Date;
   tenderValue: string;
   refNo: string;
   TenderId: string;
@@ -20,6 +20,8 @@ export interface TenderDocument extends Document {
   industry?: string;
   subIndustry?: string;
   classification?: string;
+  EMDAmountin?: string;
+  WorkDescription?: string;
 }
 
 const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
@@ -36,11 +38,11 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
     required: false,
   },
   bidSubmissionDate: {
-    type: String,
+    type: Date,
     required: true,
   },
   bidOpeningDate: {
-    type: String,
+    type: Date,
     required: true,
   },
   tenderValue: {
@@ -99,10 +101,18 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
     type: String,
     required: false,
   },
+  EMDAmountin: {
+    type: String,
+    required: false,
+  },
+  WorkDescription: {
+    type: String,
+    required: false,
+  },
 });
 
 const Tender: Model<TenderDocument> = mongoose.model<TenderDocument>(
-  "Tendernew4",
+  "Tendernew5",
   tenderSchema
 );
 

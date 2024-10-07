@@ -1,7 +1,7 @@
 const express = require("express");
 const userRoute = express.Router();
 import bcrypt from "bcryptjs";
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 const User = require("../model/user.model");
 import jwt from "jsonwebtoken";
 import { Otp_template } from "../templete/otpTemplate";
@@ -12,24 +12,22 @@ userRoute.post("/create/account", async (req: Request, res: Response) => {
     const {
       phone,
       email,
-      msmeNo,
       password,
-      subscriptionPackage,
       name,
-      username,
-      gstNo,
+      companyName,
+      industry,
+      classification,
     } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
       phone,
       email,
-      msmeNo,
       password: hashedPassword,
-      subscriptionPackage,
       name,
-      username,
-      gstNo,
+      companyName,
+      industry,
+      classification,
     });
 
     await newUser.save();
@@ -139,6 +137,23 @@ userRoute.post("/otp", async (req: Request, res: Response) => {
   }
 });
 
+const authenticateUser = (req: any, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(" ")[1]; // Get token from header
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, "secretkey"); // Verify token
+    req.user = { userId: (decoded as { userId: string }).userId }; // Attach userId to req.user
+    next(); // Proceed to next middleware or route handler
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return res.status(401).json({ message: "Invalid token." });
+  }
+};
+
 userRoute.post("/admin/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -161,6 +176,20 @@ userRoute.post("/admin/login", async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).send("Error logging in.");
+  }
+});
+
+userRoute.get("/me", authenticateUser, async (req: any, res: Response) => {
+  try {
+    const userId = req.user.userId;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).send("User not found.");
+    }
+    res.status(200).send(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error getting user.");
   }
 });
 

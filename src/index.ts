@@ -1,20 +1,18 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express, Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
 import bodyParser from "body-parser";
-// import routor from "./routor/route";
+
 const routor = require("./routor/route");
-const MONGODB_URI =
-  "mongodb+srv://gokul:UPw3fCb6kDmF5CsE@cluster0.klfb9oe.mongodb.net/tender?retryWrites=true&w=majority";
-mongoose.connect(MONGODB_URI, {
-  // useNewUrlParser: true,
-  // useUnifiedTopology: true,
-});
 
 dotenv.config();
-const connectToMongoDB = mongoose.connection;
 
+const MONGODB_URI =
+  "mongodb+srv://gokul:UPw3fCb6kDmF5CsE@cluster0.klfb9oe.mongodb.net/tender?retryWrites=true&w=majority";
+mongoose.connect(MONGODB_URI, {});
+
+const connectToMongoDB = mongoose.connection;
 connectToMongoDB.on(
   "error",
   console.error.bind(console, "MongoDB connection error:")
@@ -25,6 +23,7 @@ connectToMongoDB.once("open", () => {
 
 const app: Express = express();
 const port = process.env.PORT || 8080;
+
 app.use(
   cors({
     origin: [
@@ -44,16 +43,20 @@ app.use(
   })
 );
 
+// Middleware to parse JSON and URL-encoded data
+app.use(bodyParser.json({ limit: "500mb" }));
+app.use(bodyParser.urlencoded({ limit: "500mb", extended: true }));
+app.use(express.static("public"));
+
+// Apply the authenticateUser middleware to all routes starting with '/api'
+app.use("/api", routor);
+
+// Health check route
 app.get("/", (req: Request, res: Response) => {
   res.send("Express + TypeScript Server");
 });
 
-app.use(express.json());
-app.use(bodyParser.json({ limit: "500mb" }));
-app.use(bodyParser.urlencoded({ limit: "500mb", extended: true }));
-app.use(express.static("public"));
-app.use("/api", routor);
-
+// Start the server
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });

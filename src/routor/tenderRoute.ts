@@ -1,8 +1,9 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import Tender from "../model/tender.model";
+import TenderMapping from "../model/tender.mapping.model";
 const express = require("express");
 const tenderRoute = express.Router();
-
+import jwt from "jsonwebtoken";
 const generateRandomNumber = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1) + min);
 };
@@ -40,6 +41,23 @@ tenderRoute.post("/create", async (req: Request, res: Response) => {
     res.status(500).send("Error creating tender. Please try again.");
   }
 });
+// Authentication middleware for all API routes
+const authenticateUser = (req: any, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(" ")[1]; // Get token from header
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, "secretkey"); // Verify token
+    req.user = { userId: (decoded as { userId: string }).userId }; // Attach userId to req.user
+    next(); // Proceed to next middleware or route handler
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return res.status(401).json({ message: "Invalid token." });
+  }
+};
 
 // Convert Excel date number to JavaScript Date
 const excelDateToFormattedDate = (excelDate: number): string => {
@@ -80,6 +98,8 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
       industry: tender["Industry"] || "",
       subIndustry: tender["Sub-Industry"] || "",
       classification: tender["Classification"] || "",
+      EMDAmountin: tender["EMDAmountin₹"] || "",
+      WorkDescription: tender["WorkDescription"] || "",
     }));
 
     const result = await Tender.insertMany(tenders);
@@ -105,6 +125,8 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
       industry,
       subIndustry,
       classification,
+      startDate,
+      endDate,
     } = req.query;
 
     // Construct the search filter
@@ -149,25 +171,18 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
 
       tenderValueArray.forEach((value) => {
         const selectedValue = TenderValue.find((item) => item.value === value);
-
         if (selectedValue) {
           const rangeFilter: any = {};
-          if (selectedValue.minValue !== undefined) {
+          if (selectedValue.minValue !== undefined)
             rangeFilter.$gte = selectedValue.minValue;
-          }
-          if (selectedValue.maxValue !== undefined) {
+          if (selectedValue.maxValue !== undefined)
             rangeFilter.$lte = selectedValue.maxValue;
-          }
-
-          if (Object.keys(rangeFilter).length > 0) {
+          if (Object.keys(rangeFilter).length > 0)
             tenderValueFilters.push({ tenderValue: rangeFilter });
-          }
         }
       });
 
-      if (tenderValueFilters.length > 0) {
-        filter.$or = tenderValueFilters;
-      }
+      if (tenderValueFilters.length > 0) filter.$or = tenderValueFilters;
     }
 
     // Industry filter (supports multiple values)
@@ -206,7 +221,19 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
       filter.status = { $in: statusArray.map((s) => new RegExp(s, "i")) };
     }
 
-    console.log("Filter:", JSON.stringify(filter, null, 2)); // Log filter for debugging
+    // Date Range Filter (Bid Opening and Submission Dates)
+    if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+
+      // Ensure start and end dates are valid
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        filter.$or = [
+          // { bidOpeningDate: { $gte: start, $lte: end } },
+          { bidSubmissionDate: { $gte: start, $lte: end } },
+        ];
+      }
+    }
 
     // Fetch filtered tenders from MongoDB
     const tenders = await Tender.find(filter);
@@ -309,6 +336,47 @@ tenderRoute.delete("/delete", async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).send("Error deleting tenders. Please try again.");
+  }
+});
+
+tenderRoute.post(
+  "/tender-mapping",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    const { tenderId } = req.body;
+
+    const userId = req.user.userId || "34234234343434";
+
+    if (!tenderId || !userId) {
+      return res
+        .status(400)
+        .json({ message: "Tender ID and User ID are required." });
+    }
+
+    try {
+      const tenderMapping = new TenderMapping({ tenderId, userId });
+      await tenderMapping.save();
+      res.status(201).json({
+        message: "Tender mapping created successfully.",
+        result: tenderMapping,
+      });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Error creating tender mapping.", error });
+    }
+  }
+);
+
+// GET method to retrieve all users for a particular tender
+tenderRoute.get("/tender-mapping", async (req: Request, res: Response) => {
+  try {
+    const mappings = await TenderMapping.find({}).populate("tenderId userId");
+    res.status(200).json({ mappings });
+  } catch (error) {
+    console.log("Error retrieving mappings:", error);
+
+    res.status(500).json({ message: "Error retrieving mappings.", error });
   }
 });
 
