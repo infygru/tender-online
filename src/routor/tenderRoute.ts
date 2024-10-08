@@ -4,6 +4,7 @@ import TenderMapping from "../model/tender.mapping.model";
 const express = require("express");
 const tenderRoute = express.Router();
 import jwt from "jsonwebtoken";
+import contactModel from "../model/contact.model";
 const generateRandomNumber = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1) + min);
 };
@@ -377,6 +378,29 @@ tenderRoute.get("/tender-mapping", async (req: Request, res: Response) => {
     console.log("Error retrieving mappings:", error);
 
     res.status(500).json({ message: "Error retrieving mappings.", error });
+  }
+});
+
+tenderRoute.post("/contact", async (req: Request, res: Response) => {
+  try {
+    const { firstName, lastName, email, companyName, message } = req.body;
+    const contact = new contactModel({
+      firstName,
+      lastName,
+      email,
+      companyName,
+      message,
+    });
+
+    await contact.save();
+    res.status(201).json({
+      message: "Contact form submitted successfully.",
+      code: 201,
+      contact,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error submitting contact form. Please try again.");
   }
 });
 
