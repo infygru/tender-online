@@ -404,4 +404,21 @@ tenderRoute.post("/contact", async (req: Request, res: Response) => {
   }
 });
 
+tenderRoute.get("/contact", async (req: Request, res: Response) => {
+  try {
+    const contacts = await contactModel.find({});
+    res.status(200).json({
+      message: "Contacts fetched successfully.",
+      contacts,
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Error fetching contacts:", error);
+    res.status(500).json({
+      message: "Error fetching contacts. Please try again.",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = tenderRoute;

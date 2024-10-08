@@ -7,5 +7,6 @@ router.get("/", (req: any, res: any) => {
 router.use("/auth", require("./userRoute"));
 router.use("/tender", require("./tenderRoute"));
 router.use("/ads", require("./adsRoute"));
+router.use('/blog', require('./blogRoute'));
 
 module.exports = router;
