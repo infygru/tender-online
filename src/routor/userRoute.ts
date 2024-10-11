@@ -6,41 +6,162 @@ const User = require("../model/user.model");
 import jwt from "jsonwebtoken";
 import { Otp_template } from "../templete/otpTemplate";
 const { transporter } = require("../nodemailer");
+const authenticateUser = (req: any, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(" ")[1]; // Get token from header
 
-userRoute.post("/create/account", async (req: Request, res: Response) => {
+  if (!token) {
+    return res.status(401).json({ message: "No token provided." });
+  }
+
   try {
-    const {
-      phone,
-      email,
-      password,
-      name,
-      companyName,
-      industry,
-      classification,
-    } = req.body;
+    const decoded = jwt.verify(token, "secretkey"); // Verify token
+    req.user = { userId: (decoded as { userId: string }).userId }; // Attach userId to req.user
+    next(); // Proceed to next middleware or route handler
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return res.status(401).json({ message: "Invalid token." });
+  }
+};
+
+userRoute.post("/create/account", async (req: any, res: any) => {
+  try {
+    const { phone, email, password, name, companyName } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Calculate default free 3-day subscription validity
+    const subscriptionValidity = new Date();
+    subscriptionValidity.setDate(subscriptionValidity.getDate() + 3);
+
+    // Create a new user with the 3-day free subscription validity
     const newUser = new User({
       phone,
       email,
       password: hashedPassword,
       name,
       companyName,
-      industry,
-      classification,
+      subscriptionValidity, // Add the default 3-day subscription
     });
 
     await newUser.save();
+
+    // Generate JWT token for the newly created user
     const token = jwt.sign({ userId: newUser._id }, "secretkey", {
       expiresIn: "354d",
     });
+
     res.status(201).json({
       message: "User registered successfully.",
       accessToken: token,
+      subscriptionValidity, // Return the subscription validity to the user
     });
   } catch (error) {
     console.error(error);
     res.status(500).send("Error registering user.");
+  }
+});
+
+userRoute.post(
+  "/success/payment",
+  authenticateUser,
+  async (req: any, res: any) => {
+    const { paymentId, amount, duration } = req.body;
+    const userId = req.user.userId;
+
+    try {
+      // Find the user and update payment status
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let validityDuration;
+      if (duration === "Per Month") {
+        validityDuration = 30;
+      } else if (duration === "Per Half Year") {
+        validityDuration = 182;
+      } else if (duration === "Per Year") {
+        validityDuration = 365;
+      } else {
+        return res.status(400).json({ message: "Invalid duration value" });
+      }
+
+      // Calculate the new subscription validity date
+      let subscriptionValidity = new Date();
+
+      // Check if the current subscription is still valid
+      if (user.subscriptionValidity && user.subscriptionValidity > new Date()) {
+        // If the existing subscription is valid, extend it from the current subscriptionValidity
+        subscriptionValidity = new Date(user.subscriptionValidity);
+      }
+
+      // Extend the subscription by adding the validity duration
+      subscriptionValidity.setDate(
+        subscriptionValidity.getDate() + validityDuration
+      );
+
+      // Validate if subscriptionValidity is a valid date
+      if (isNaN(subscriptionValidity.getTime())) {
+        return res
+          .status(400)
+          .json({ message: "Invalid subscription validity date" });
+      }
+
+      // Update user payment status and subscription validity
+      user.isPayment = true;
+      user.paymentStatus = "Completed";
+      user.subscriptionValidity = subscriptionValidity;
+
+      await user.save();
+
+      res.status(200).json({
+        message: "Payment successful",
+        subscriptionValidity,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+
+// Utility function to add days to a date
+const addDays = (date: Date, days: number): Date => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+userRoute.get("/status", authenticateUser, async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required." });
+    }
+
+    const user: any | null = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // const currentTime = new Date()
+    const currentTime = new Date();
+    const freeTrialStart = user.subscriptionValidity || currentTime; // Use current time if no start time is set
+    const tendersVisibleUntil = freeTrialStart;
+    const isTendersVisible = tendersVisibleUntil > currentTime;
+
+    console.log(currentTime, "currentTime");
+    console.log(tendersVisibleUntil, "tendersVisibleUntil");
+
+    res.status(200).json({
+      userId: user._id,
+      tendersVisibleUntil,
+      isTendersVisible,
+      paymentStatus: user.paymentStatus,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error getting user status." });
   }
 });
 
@@ -137,23 +258,6 @@ userRoute.post("/otp", async (req: Request, res: Response) => {
   }
 });
 
-const authenticateUser = (req: any, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(" ")[1]; // Get token from header
-
-  if (!token) {
-    return res.status(401).json({ message: "No token provided." });
-  }
-
-  try {
-    const decoded = jwt.verify(token, "secretkey"); // Verify token
-    req.user = { userId: (decoded as { userId: string }).userId }; // Attach userId to req.user
-    next(); // Proceed to next middleware or route handler
-  } catch (error) {
-    console.error("Token verification failed:", error);
-    return res.status(401).json({ message: "Invalid token." });
-  }
-};
-
 userRoute.post("/admin/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -192,5 +296,74 @@ userRoute.get("/me", authenticateUser, async (req: any, res: Response) => {
     res.status(500).send("Error getting user.");
   }
 });
+
+userRoute.post(
+  "/suggestion",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const { classification, industry, state } = req.body;
+
+      if (!classification || !industry || !state) {
+        return res.status(400).send("All fields are required.");
+      }
+
+      const userId = req.user.userId;
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).send("User not found.");
+      }
+
+      user.classification = classification;
+      user.industry = industry;
+      user.state = state;
+
+      await user.save();
+
+      res.status(200).send({
+        message: "User details updated successfully.",
+        user,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error getting user.");
+    }
+  }
+);
+
+// check user already added suggestion or not
+userRoute.get(
+  "/suggestion/check",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).send("User not found.");
+      }
+
+      if (user.classification && user.industry && user.state) {
+        return res.status(200).send({
+          message: "User has already added suggestions.",
+          suggestion: {
+            classification: user.classification,
+            industry: user.industry,
+            state: user.state,
+          },
+        });
+      } else {
+        return res.status(200).send({
+          message: "User has not added any suggestions yet.",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error checking user suggestions.");
+    }
+  }
+);
 
 module.exports = userRoute;
