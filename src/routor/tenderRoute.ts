@@ -372,7 +372,9 @@ tenderRoute.post(
 // GET method to retrieve all users for a particular tender
 tenderRoute.get("/tender-mapping", async (req: Request, res: Response) => {
   try {
-    const mappings = await TenderMapping.find({}).populate("tenderId userId");
+    const mappings = await TenderMapping.find({})
+      .populate("tenderId userId")
+      .sort({ createdAt: -1 });
     res.status(200).json({ mappings });
   } catch (error) {
     console.log("Error retrieving mappings:", error);
@@ -420,9 +422,5 @@ tenderRoute.get("/contact", async (req: Request, res: Response) => {
     });
   }
 });
-
-
-
-
 
 module.exports = tenderRoute;

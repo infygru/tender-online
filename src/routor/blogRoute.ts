@@ -93,8 +93,8 @@ blogRoute.post(
       // Create a new blog post using the Mongoose model
       const newPost = await BlogPostModel.create({
         title,
-        featureImg1: files[0].location,
-        featureImg2: files[1].location,
+        featureImg1: files[0]?.location || "demo",
+        featureImg2: files[1]?.location || "demo",
         description,
         tags,
         author,

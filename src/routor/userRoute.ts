@@ -183,6 +183,14 @@ userRoute.post("/login", async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).send("User not found.");
     }
+
+    if (user.status === "Inactive") {
+      return res.status(200).json({
+        message: "Your account has been deactivated. Please contact support.",
+        code: 401,
+      });
+    }
+
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return res.status(401).send("Invalid password.");
@@ -365,5 +373,54 @@ userRoute.get(
     }
   }
 );
+
+userRoute.get("/users", async (req: Request, res: Response) => {
+  try {
+    const users = await User.find();
+    res.status(200).send(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error getting users.");
+  }
+});
+
+// delete user with id /users/:id
+userRoute.delete("/users/:id", async (req: Request, res: Response) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found.", code: 404 });
+    }
+    res.status(200).json({
+      message: "User deleted successfully.",
+      code: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error deleting user.");
+  }
+});
+
+// update user status with id /users/:id/status
+userRoute.patch("/users/:id/status", async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found.", code: 404 });
+    }
+    console.log(req.body.status, user, "req.body.status");
+
+    user.status = req.body.status;
+    await user.save();
+    res.status(200).json({
+      message: "User status updated successfully.",
+      code: 200,
+      status: user.status,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error updating user status.");
+  }
+});
 
 module.exports = userRoute;

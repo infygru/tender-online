@@ -21,4 +21,4 @@ const ContactSchema: Schema = new Schema(
   }
 );
 
-export default mongoose.model<IContact>("Contact", ContactSchema);
+export default mongoose.model<IContact>("Contact1", ContactSchema);
