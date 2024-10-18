@@ -5,6 +5,7 @@ import { NextFunction, Request, Response } from "express";
 const User = require("../model/user.model");
 import jwt from "jsonwebtoken";
 import { Otp_template } from "../templete/otpTemplate";
+import bannerModel from "../model/banner.model";
 const { transporter } = require("../nodemailer");
 const authenticateUser = (req: any, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(" ")[1]; // Get token from header
@@ -124,6 +125,44 @@ userRoute.post(
     }
   }
 );
+
+// forgot password
+userRoute.post("/forgot/password", async (req: Request, res: Response) => {
+  try {
+    const password = req.body.password;
+    const email = req.body.email;
+    if (!("email" in req.body)) {
+      return res.status(400).json({
+        status: "failed",
+        status_code: 400,
+        message: "email keyword Does Not Exist In Request",
+        result: {},
+      });
+    }
+    // change new password handler
+
+    const user: any = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).send("User not found.");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    await user.save();
+    res.status(200).send({
+      message: "Password changed successfully.",
+      code: 200,
+      newPassword: password,
+    });
+  } catch (err) {
+    return res.status(400).send({
+      status: "failed",
+      status_code: 400,
+      message: "Something went wrong!",
+      result: {},
+    });
+  }
+});
 
 // Utility function to add days to a date
 const addDays = (date: Date, days: number): Date => {
@@ -420,6 +459,56 @@ userRoute.patch("/users/:id/status", async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).send("Error updating user status.");
+  }
+});
+
+userRoute.post("/banner", async (req: Request, res: Response) => {
+  try {
+    const { banner, isSignup, isActive } = req.body;
+
+    // Validation: Ensure the 'banner' field exists and is not empty
+    if (!banner || typeof banner !== "string" || banner.trim() === "") {
+      return res.status(400).send({ error: "Invalid banner data." });
+    }
+
+    // Check if a banner already exists (assuming you only ever have one banner)
+    const existingBanner: any = await bannerModel.findOne();
+
+    if (existingBanner) {
+      // If a banner already exists, update it
+      existingBanner.banner = banner;
+      existingBanner.isSignup = isSignup;
+      existingBanner.isActive = isActive;
+
+      await existingBanner.save();
+      return res.status(200).send({
+        message: "Banner updated successfully.",
+        banner: existingBanner,
+      });
+    } else {
+      // If no banner exists, create a new one
+      const newBanner = await bannerModel.create({
+        banner,
+        isSignup,
+        isActive,
+      });
+      return res
+        .status(201)
+        .send({ message: "Banner created successfully.", banner: newBanner });
+    }
+  } catch (error) {
+    console.error("Error processing banner request:", error);
+    return res.status(500).send({ error: "Error adding/updating banner." });
+  }
+});
+
+userRoute.get("/banner", async (req: Request, res: Response) => {
+  try {
+    const banner = await bannerModel.findOne();
+    return res.status(200).send({ banner });
+  } catch (error) {
+    console.error("Error fetching banner:", error);
+    return res.status(500).send({ error: "Error fetching banner." });
   }
 });
 
