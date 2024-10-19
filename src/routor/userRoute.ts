@@ -29,6 +29,17 @@ userRoute.post("/create/account", async (req: any, res: any) => {
     const { phone, email, password, name, companyName } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Check if the email or phone number already exists
+    const existingUser = await User.findOne({
+      $or: [{ email }, { phone }],
+    });
+
+    if (existingUser) {
+      return res
+        .status(200)
+        .json({ message: "User already exists.", code: 400 });
+    }
+
     // Calculate default free 3-day subscription validity
     const subscriptionValidity = new Date();
     subscriptionValidity.setDate(subscriptionValidity.getDate() + 3);
