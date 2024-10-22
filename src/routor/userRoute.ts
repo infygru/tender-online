@@ -16,6 +16,7 @@ const authenticateUser = (req: any, res: Response, next: NextFunction) => {
 
   try {
     const decoded = jwt.verify(token, "secretkey"); // Verify token
+    console.log(decoded, "decoded");
     req.user = { userId: (decoded as { userId: string }).userId }; // Attach userId to req.user
     next(); // Proceed to next middleware or route handler
   } catch (error) {
@@ -26,7 +27,15 @@ const authenticateUser = (req: any, res: Response, next: NextFunction) => {
 
 userRoute.post("/create/account", async (req: any, res: any) => {
   try {
-    const { phone, email, password, name, companyName } = req.body;
+    const {
+      phone,
+      email,
+      password,
+      name,
+      companyName,
+      isGoogleAuth,
+      profile_image,
+    } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Check if the email or phone number already exists
@@ -52,6 +61,8 @@ userRoute.post("/create/account", async (req: any, res: any) => {
       name,
       companyName,
       subscriptionValidity, // Add the default 3-day subscription
+      isGoogleAuth,
+      profile_image,
     });
 
     await newUser.save();
@@ -69,6 +80,58 @@ userRoute.post("/create/account", async (req: any, res: any) => {
   } catch (error) {
     console.error(error);
     res.status(500).send("Error registering user.");
+  }
+});
+
+userRoute.post("/create/account/google", async (req: any, res: any) => {
+  try {
+    const { email, name, picture, isGoogleAuth } = req.body; // Extract user info from the token
+
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      // If user exists, generate a JWT token
+      const token = jwt.sign({ userId: existingUser._id }, "secretkey", {
+        expiresIn: "354d",
+      });
+
+      return res.status(200).json({
+        message: "User already exists.",
+        accessToken: token,
+        subscriptionValidity: existingUser.subscriptionValidity, // Return existing subscription validity
+      });
+    }
+
+    // Create a new user
+    const newUser = new User({
+      email,
+      name,
+      profile_image: picture,
+      phone: "",
+      // Add any default fields needed for the new user
+      subscriptionValidity: new Date(
+        new Date().setDate(new Date().getDate() + 3)
+      ), // Default 3-day subscription validity
+      isGoogleAuth: true, // Indicate that this is a Google-authenticated user
+      password: "google", // Set a default password for Google-authenticated users
+    });
+
+    await newUser.save();
+
+    // Generate a JWT token for the newly created user
+    const token = jwt.sign({ userId: newUser._id }, "secretkey", {
+      expiresIn: "354d",
+    });
+
+    res.status(201).json({
+      message: "User registered successfully.",
+      accessToken: token,
+      subscriptionValidity: newUser.subscriptionValidity, // Return subscription validity
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error registering user with Google.");
   }
 });
 
@@ -234,6 +297,8 @@ userRoute.post("/login", async (req: Request, res: Response) => {
       return res.status(404).send("User not found.");
     }
 
+    const isGoogleAuth = user.isGoogleAuth;
+
     if (user.status === "Inactive") {
       return res.status(200).json({
         message: "Your account has been deactivated. Please contact support.",
@@ -248,6 +313,28 @@ userRoute.post("/login", async (req: Request, res: Response) => {
     const token = jwt.sign({ userId: user._id }, "secretkey", {
       expiresIn: "354d",
     });
+    res.status(200).send({ token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error logging in.");
+  }
+});
+
+userRoute.post("/google/login", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(200).json({
+        message: "User not found.",
+        code: 404,
+      });
+    }
+
+    // Assuming you may want to add more checks or handle user creation here
+    const token = jwt.sign({ userId: user._id }, "secretkey"); // Use a consistent secret key
+
     res.status(200).send({ token });
   } catch (error) {
     console.error(error);

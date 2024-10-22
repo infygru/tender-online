@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    phone: { type: String, required: true },
+    phone: { type: String, required: false },
     email: { type: String, required: true, unique: true }, // Ensure unique email addresses
     password: { type: String, required: true },
     companyName: { type: String, required: false },
@@ -20,6 +20,8 @@ const userSchema = new mongoose.Schema(
     freeTrailTime: { type: Date, default: new Date() },
     notificationSent: { type: Boolean, default: false },
     subscriptionValidity: { type: Date, required: false }, // New field for subscription validity
+    profile_image: { type: String, required: false },
+    isGoogleAuth: { type: Boolean, default: false },
   },
   {
     timestamps: true,
