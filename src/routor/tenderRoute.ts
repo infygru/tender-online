@@ -139,6 +139,17 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         { tenderName: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
         { refNo: { $regex: search, $options: "i" } },
+        { department: { $regex: search, $options: "i" } },
+        { subDepartment: { $regex: search, $options: "i" } },
+        { location: { $regex: search, $options: "i" } },
+        { industry: { $regex: search, $options: "i" } },
+        { subIndustry: { $regex: search, $options: "i" } },
+        { classification: { $regex: search, $options: "i" } },
+        { status: { $regex: search, $options: "i" } },
+        { tenderValue: { $regex: search, $options: "i" } },
+        { WorkDescription: { $regex: search, $options: "i" } },
+        { EMDAmountin: { $regex: search, $options: "i" } },
+        { pinCode: { $regex: search, $options: "i" } },
       ];
     }
 
