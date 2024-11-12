@@ -7,6 +7,6 @@ export const transporter = nodemailer.createTransport({
   auth: {
     // TODO: replace `user` and `pass` values from <https://forwardemail.net>
     user: "info@tenderonline.in",
-    pass: "s95kuVZBTnWc",
+    pass: "WP6i KMKN BF1p",
   },
 });
