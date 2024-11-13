@@ -6,9 +6,11 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: false },
     email: { type: String, required: true, unique: true }, // Ensure unique email addresses
     password: { type: String, required: true },
-    companyName: { type: String, required: false },
+    companyName: { type: String, required: false, default: "" },
     state: { type: Array, default: ["tamil-nadu"] },
     isPayment: { type: Boolean, default: false },
+    city: { type: String, required: false },
+    address: { type: String, required: false },
     status: {
       type: String,
       enum: ["active", "inactive", "pending", "free"],
@@ -22,6 +24,8 @@ const userSchema = new mongoose.Schema(
     subscriptionValidity: { type: Date, required: false }, // New field for subscription validity
     profile_image: { type: String, required: false },
     isGoogleAuth: { type: Boolean, default: false },
+    keyword: { type: Array, required: false },
+    improvement: { type: String, required: false, default: "Texting" },
   },
   {
     timestamps: true,

@@ -6,6 +6,7 @@ const User = require("../model/user.model");
 import jwt from "jsonwebtoken";
 import { Otp_template } from "../templete/otpTemplate";
 import bannerModel from "../model/banner.model";
+import TenderMapping from "../model/tender.mapping.model";
 const { transporter } = require("../nodemailer");
 const authenticateUser = (req: any, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(" ")[1]; // Get token from header
@@ -609,5 +610,182 @@ userRoute.get("/banner", async (req: Request, res: Response) => {
     return res.status(500).send({ error: "Error fetching banner." });
   }
 });
+
+userRoute.put("/me", authenticateUser, async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Extract and update user fields dynamically
+    const updateFields: any = req.body;
+    Object.keys(updateFields).forEach((field) => {
+      if (updateFields[field as keyof any]) {
+        user[field as keyof any] = updateFields[field as keyof any]!;
+      }
+    });
+
+    await user.save();
+
+    res.status(200).json({
+      message: "User profile updated successfully.",
+      user,
+    });
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred while updating the user profile." });
+  }
+});
+
+userRoute.get(
+  "/me/tender",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+      const mappings = await TenderMapping.find({ userId })
+        .populate("tenderId userId")
+        .sort({ createdAt: -1 });
+
+      res.status(200).json({ mappings });
+    } catch (error) {
+      console.log("Error retrieving mappings:", error);
+
+      res.status(500).json({ message: "Error retrieving mappings.", error });
+    }
+  }
+);
+
+userRoute.post(
+  "/change-password",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+      const { currentPassword, newPassword } = req.body;
+
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      // const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+      // if (!passwordMatch) {
+      //   return res.status(401).json({ message: "Invalid password." });
+      // }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      await user.save();
+
+      res.status(200).json({ message: "Password updated successfully." });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res
+        .status(500)
+        .json({ message: "An error occurred while updating the password." });
+    }
+  }
+);
+
+// keyword suggestion
+userRoute.post(
+  "/keyword/suggestion",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const { keyword } = req.body;
+
+      if (!keyword) {
+        return res.status(400).send("Invalid keyword data.");
+      }
+
+      const userId = req.user.userId;
+      const user = await User.findById(userId);
+
+      if (!user) {
+        return res.status(404).send("User not found.");
+      }
+
+      // add keyword to user if already not exist
+      if (!user.keyword.includes(keyword)) {
+        user.keyword.push(keyword);
+      }
+
+      await user.save();
+
+      res.status(200).send({
+        message: "User keyword updated successfully.",
+        user,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error getting user.");
+    }
+  }
+);
+
+// get user keyword
+userRoute.get("/keyword", authenticateUser, async (req: any, res: Response) => {
+  try {
+    const userId = req.user.userId;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).send("User not found.");
+    }
+
+    return res.status(200).send({
+      message: "User keyword list.",
+      keyword: user.keyword,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error getting user keyword.");
+  }
+});
+
+// message improvement
+
+userRoute.post(
+  "/message",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+      const { message } = req.body;
+
+      // Validation: Ensure the 'message' field exists and is not empty
+      if (!message || typeof message !== "string" || message.trim() === "") {
+        return res.status(400).send({ error: "Invalid message data." });
+      }
+
+      // Check if a message already exists (assuming you only ever have one message)
+      const existingMessage: any = await User.findById(userId);
+
+      if (existingMessage) {
+        // If a message already exists, update it
+        existingMessage.improvement = message;
+
+        await existingMessage.save();
+        return res.status(200).send({
+          message: "Message updated successfully.",
+          improvement: existingMessage,
+        });
+      }
+    } catch (error) {
+      console.error("Error processing message request:", error);
+      return res.status(500).send({ error: "Error adding/updating message." });
+    }
+  }
+);
 
 module.exports = userRoute;
