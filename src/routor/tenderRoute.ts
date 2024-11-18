@@ -78,7 +78,7 @@ const excelDateToFormattedDate = (excelDate: number): string => {
 
 tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
   try {
-    console.log("Request body:", req.body);
+    console.log("Request body:", req.body, "Request body:");
 
     const tenders = req.body.map((tender: any) => ({
       tenderName: tender["TenderName"],
@@ -93,7 +93,7 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
       location: tender["Location"],
       address: tender["Address"],
       pincode: parseInt(tender["Pincode"]),
-      tenderValue: parseFloat(tender["TenderValue(₹)"]),
+      tenderValue: String(tender["TenderValue(₹)"]),
       bidOpeningDate: tender["BidOpeningDate"],
       bidSubmissionDate: tender["BidSubmissionEndDate"],
       industry: tender["Industry"] || "",
@@ -102,6 +102,8 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
       EMDAmountin: tender["EMDAmountin₹"] || "",
       WorkDescription: tender["WorkDescription"] || "",
     }));
+
+    console.log(tenders, "Tenders");
 
     const result = await Tender.insertMany(tenders);
     res.status(201).json({
