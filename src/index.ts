@@ -36,7 +36,7 @@ app.use(
       "https://demo.tenderonline.in",
       "https://demo.tenderonline.in/",
       "https://admin.tenderonline.co.in",
-      "http://localhost:8080",
+      "https://tender-online.vercel.app",
       "https://www.tenderonline.in",
       "https://tenderonline.in/",
       "https://www.tenderonline.co.in",

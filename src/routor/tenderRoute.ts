@@ -353,6 +353,21 @@ tenderRoute.delete("/delete", async (req: Request, res: Response) => {
   }
 });
 
+tenderRoute.delete("/:id", async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    const tenders = await Tender.findByIdAndDelete(id);
+    res.status(200).json({
+      message: "All tenders deleted successfully.",
+      result: tenders,
+      code: 200,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error deleting tenders. Please try again.");
+  }
+});
+
 tenderRoute.post(
   "/tender-mapping",
   authenticateUser,

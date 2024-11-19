@@ -7,9 +7,11 @@ import jwt from "jsonwebtoken";
 import { Otp_template } from "../templete/otpTemplate";
 import bannerModel from "../model/banner.model";
 import TenderMapping from "../model/tender.mapping.model";
+import TransactionModel from "../model/tender.priceing.model";
 const { transporter } = require("../nodemailer");
 const authenticateUser = (req: any, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(" ")[1]; // Get token from header
+  console.log(token, "token");
 
   if (!token) {
     return res.status(401).json({ message: "No token provided." });
@@ -37,6 +39,29 @@ userRoute.post("/create/account", async (req: any, res: any) => {
       isGoogleAuth,
       profile_image,
     } = req.body;
+    const getLastClientId = async () => {
+      const lastClient = await User.findOne()
+        .sort({ clientId: -1 }) // Sort by clientId in descending order
+        .exec();
+
+      return lastClient?.clientId || null; // Return the clientId or null if no documents
+    };
+
+    const incrementClientId = (clientId: string) => {
+      const prefix = clientId.slice(0, 3); // Extract the prefix, e.g., "#TO"
+      const number = parseInt(clientId.slice(3), 10); // Extract the numeric part
+      const nextNumber = (number + 1).toString().padStart(4, "0"); // Increment and pad
+      return `${prefix}${nextNumber}`;
+    };
+    var clientId: any = 0;
+    // Example
+    getLastClientId().then((lastClientId) => {
+      const newClientId = incrementClientId(lastClientId || "#TO0000");
+      clientId = newClientId;
+      console.log("New Client ID:", newClientId);
+    });
+
+    // Validate the user input
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Check if the email or phone number already exists
@@ -64,6 +89,7 @@ userRoute.post("/create/account", async (req: any, res: any) => {
       subscriptionValidity, // Add the default 3-day subscription
       isGoogleAuth,
       profile_image,
+      clientId,
     });
 
     await newUser.save();
@@ -77,6 +103,7 @@ userRoute.post("/create/account", async (req: any, res: any) => {
       message: "User registered successfully.",
       accessToken: token,
       subscriptionValidity, // Return the subscription validity to the user
+      clientId,
     });
   } catch (error) {
     console.error(error);
@@ -200,6 +227,52 @@ userRoute.post(
     }
   }
 );
+
+userRoute.post(
+  "/payment/success/executive",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req?.user?.userId;
+      console.log(userId, "userId");
+
+      const { amount_received, payment_method, content } = req.body;
+
+      const transaction = new TransactionModel({
+        userId,
+        amount_received,
+        price: amount_received,
+        payment_method,
+        total_amount_paid: amount_received,
+        transaction_status: "Completed",
+        discount_applied: 0.0,
+        tax_amount: 0.0,
+        content,
+      });
+
+      await transaction.save();
+
+      res.status(200).json({
+        code: 200,
+        message: "Payment successful",
+        transaction,
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+
+userRoute.get("/payment/transcation", async (req: Request, res: Response) => {
+  try {
+    const transactions = await TransactionModel.find({}).populate("userId");
+    res.status(200).send(transactions);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error getting transactions.");
+  }
+});
 
 // forgot password
 userRoute.post("/forgot/password", async (req: Request, res: Response) => {
