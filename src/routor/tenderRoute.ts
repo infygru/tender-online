@@ -152,6 +152,8 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         { WorkDescription: { $regex: search, $options: "i" } },
         { EMDAmountin: { $regex: search, $options: "i" } },
         { pinCode: { $regex: search, $options: "i" } },
+        { TenderId: { $regex: search, $options: "i" } },
+        { address: { $regex: search, $options: "i" } },
       ];
     }
 
@@ -413,13 +415,14 @@ tenderRoute.get("/tender-mapping", async (req: Request, res: Response) => {
 
 tenderRoute.post("/contact", async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, companyName, message } = req.body;
+    const { firstName, lastName, email, companyName, message, type } = req.body;
     const contact = new contactModel({
       firstName,
       lastName,
       email,
       companyName,
       message,
+      type,
     });
 
     await contact.save();
@@ -436,7 +439,8 @@ tenderRoute.post("/contact", async (req: Request, res: Response) => {
 
 tenderRoute.get("/contact", async (req: Request, res: Response) => {
   try {
-    const contacts = await contactModel.find({});
+    const { filter } = req.query;
+    const contacts = await contactModel.find({ type: filter });
     res.status(200).json({
       message: "Contacts fetched successfully.",
       contacts,

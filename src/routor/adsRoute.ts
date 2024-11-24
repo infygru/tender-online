@@ -37,6 +37,7 @@ const upload = multer({
 // Handle the POST request for ads image upload
 adsRoute.post("/upload", upload.single("image"), async (req: any, res) => {
   const file = req.file;
+  const { url } = req.body;
 
   if (!file) {
     return res.status(400).json({ error: "No file uploaded" });
@@ -49,6 +50,7 @@ adsRoute.post("/upload", upload.single("image"), async (req: any, res) => {
     title: "Sample Ad",
     description: "This is a sample ad image.",
     imageUrl, // Use the URL of the uploaded image
+    url,
   });
 
   try {
@@ -90,5 +92,86 @@ adsRoute.delete("/:id", async (req, res) => {
       .json({ error: "Error deleting ad image", details: error.message });
   }
 });
+
+adsRoute.post(
+  "/banner/upload",
+  upload.single("image"),
+  async (req: any, res) => {
+    const file = req.file;
+    const { url } = req.body;
+
+    if (!file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    // Extract the image URL from the uploaded file
+    const imageUrl = file.location;
+
+    const newAdImage: IAdImage = new AdImage({
+      title: "Sample Ad",
+      description: "This is a sample ad image.",
+      imageUrl, // Use the URL of the uploaded image
+      url,
+      type: "banner",
+      active: true,
+    });
+
+    try {
+      await newAdImage.save();
+      res.status(201).json(newAdImage);
+    } catch (error) {
+      res.status(500).json({ error: "Error saving ad image" });
+    }
+  }
+);
+
+// Handle the GET request to fetch all banner images
+
+adsRoute.get("/banner/images", async (req, res) => {
+  try {
+    const adImages = await AdImage.find({ type: "banner" }); // Retrieve all banner images from the database
+    res.status(200).json(adImages);
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching banner images" });
+  }
+});
+
+// update the ad image with the new data
+adsRoute.put(
+  "/banner/upload/:id",
+  upload.single("image"),
+  async (req: any, res: any) => {
+    const { id } = req.params;
+    const { description, url } = req.body;
+    const file = req.file;
+
+    try {
+      // Fetch the ad image by ID
+      const adImage = await AdImage.findById(id);
+
+      if (!adImage) {
+        return res.status(404).json({ error: "Ad image not found" });
+      }
+
+      // Update ad image fields dynamically
+      adImage.title = adImage.title || "Sample Ad"; // Add a default title if none exists
+      adImage.description = description || adImage.description;
+      adImage.imageUrl = file?.location || adImage.imageUrl; // Use file's path if available
+      adImage.url = url || adImage.url;
+
+      // Save the updated ad image
+      await adImage.save();
+
+      res
+        .status(200)
+        .json({ message: "Ad image updated successfully", adImage });
+    } catch (error) {
+      res.status(500).json({
+        error: "Error updating ad image",
+        details: (error as Error).message,
+      });
+    }
+  }
+);
 
 module.exports = adsRoute;

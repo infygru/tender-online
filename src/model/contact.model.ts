@@ -6,6 +6,7 @@ export interface IContact extends Document {
   companyName?: string;
   email: string;
   message: string;
+  type: string;
 }
 
 const ContactSchema: Schema = new Schema(
@@ -15,6 +16,7 @@ const ContactSchema: Schema = new Schema(
     email: { type: String, required: true },
     companyName: { type: String },
     message: { type: String, required: true },
+    type: { type: String, default: "support" },
   },
   {
     timestamps: true,

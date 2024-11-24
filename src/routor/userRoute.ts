@@ -481,8 +481,8 @@ userRoute.post("/admin/login", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    const AdminEmail = "admin@tenderonline.in";
-    const AdminPassword = "admin@123";
+    const AdminEmail = "admin@tenderonline.co.in";
+    const AdminPassword = "TO_admin@555";
 
     if (email !== AdminEmail) {
       return res.status(404).send("User not found.");
@@ -587,7 +587,21 @@ userRoute.get(
 
 userRoute.get("/users", async (req: Request, res: Response) => {
   try {
-    const users = await User.find();
+    const search = req.query.search as string;
+
+    // If search query is provided, filter users based on name or email
+    const query = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { phone: { $regex: search, $options: "i" } },
+            { companyName: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {};
+
+    const users = await User.find(query);
     res.status(200).send(users);
   } catch (error) {
     console.error(error);

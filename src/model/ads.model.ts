@@ -6,6 +6,9 @@ export interface IAdImage extends Document {
   description?: string;
   imageUrl: string;
   createdAt: Date;
+  url: string;
+  type: string;
+  active: boolean;
 }
 
 // Define the schema for Ad Image
@@ -14,6 +17,9 @@ const AdImageSchema: Schema<IAdImage> = new Schema<IAdImage>({
   description: { type: String },
   imageUrl: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
+  url: { type: String },
+  type: { type: String, default: "ad" },
+  active: { type: Boolean, default: true },
 });
 
 // Create the model from the schema
