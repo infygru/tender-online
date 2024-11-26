@@ -148,7 +148,7 @@ adsRoute.put(
     try {
       // Fetch the ad image by ID
       const adImage = await AdImage.findById(id);
-
+      const active = req.body.active;
       if (!adImage) {
         return res.status(404).json({ error: "Ad image not found" });
       }
@@ -158,6 +158,7 @@ adsRoute.put(
       adImage.description = description || adImage.description;
       adImage.imageUrl = file?.location || adImage.imageUrl; // Use file's path if available
       adImage.url = url || adImage.url;
+      adImage.active = active;
 
       // Save the updated ad image
       await adImage.save();
