@@ -60,22 +60,6 @@ const authenticateUser = (req: any, res: Response, next: NextFunction) => {
   }
 };
 
-// Convert Excel date number to JavaScript Date
-const excelDateToFormattedDate = (excelDate: number): string => {
-  if (isNaN(excelDate) || excelDate < 0) {
-    return "refer document";
-  }
-
-  const epoch = new Date(1899, 11, 30); // Excel's epoch date
-  const date = new Date(epoch.getTime() + (excelDate - 1) * 86400000); // Convert days to milliseconds
-
-  const day = date.getUTCDate().toString().padStart(2, "0");
-  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0"); // Months are zero-based
-  const year = date.getUTCFullYear();
-
-  return `${day}/${month}/${year}`;
-};
-
 tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
   try {
     console.log("Request body:", req.body, "Request body:");
@@ -137,25 +121,33 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
 
     // Global search filter (searches in multiple fields)
     if (search) {
-      filter.$or = [
-        { tenderName: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { refNo: { $regex: search, $options: "i" } },
-        { department: { $regex: search, $options: "i" } },
-        { subDepartment: { $regex: search, $options: "i" } },
-        { location: { $regex: search, $options: "i" } },
-        { industry: { $regex: search, $options: "i" } },
-        { subIndustry: { $regex: search, $options: "i" } },
-        { classification: { $regex: search, $options: "i" } },
-        { status: { $regex: search, $options: "i" } },
-        { tenderValue: { $regex: search, $options: "i" } },
-        { WorkDescription: { $regex: search, $options: "i" } },
-        { EMDAmountin: { $regex: search, $options: "i" } },
-        { pinCode: { $regex: search, $options: "i" } },
-        { TenderId: { $regex: search, $options: "i" } },
-        { address: { $regex: search, $options: "i" } },
-      ];
+      // Split the search string by commas into an array of keywords
+      const keywords = (search as string)
+        .split(",")
+        .map((keyword) => keyword.trim());
+
+      // Create a dynamic $or filter for each keyword
+      filter.$or = keywords.flatMap((keyword) => [
+        { tenderName: { $regex: keyword, $options: "i" } },
+        { description: { $regex: keyword, $options: "i" } },
+        { refNo: { $regex: keyword, $options: "i" } },
+        { department: { $regex: keyword, $options: "i" } },
+        { subDepartment: { $regex: keyword, $options: "i" } },
+        { location: { $regex: keyword, $options: "i" } },
+        { industry: { $regex: keyword, $options: "i" } },
+        { subIndustry: { $regex: keyword, $options: "i" } },
+        { classification: { $regex: keyword, $options: "i" } },
+        { status: { $regex: keyword, $options: "i" } },
+        { tenderValue: { $regex: keyword, $options: "i" } },
+        { WorkDescription: { $regex: keyword, $options: "i" } },
+        { EMDAmountin: { $regex: keyword, $options: "i" } },
+        { pinCode: { $regex: keyword, $options: "i" } },
+        { TenderId: { $regex: keyword, $options: "i" } },
+        { address: { $regex: keyword, $options: "i" } },
+      ]);
     }
+
+    console.log(search, "search");
 
     // District filter (supports multiple values)
     if (district) {

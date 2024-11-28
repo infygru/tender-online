@@ -41,6 +41,7 @@ app.use(
       "https://tenderonline.in/",
       "https://www.tenderonline.co.in",
       "https://tenderonline.co.in",
+      "https://tender-online.vercel.app",
       "http://localhost:3000",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],

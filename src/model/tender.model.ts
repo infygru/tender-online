@@ -39,35 +39,35 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
   },
   bidSubmissionDate: {
     type: Date,
-    required: true,
+    required: false,
   },
   bidOpeningDate: {
     type: Date,
-    required: true,
+    required: false,
   },
   tenderValue: {
     type: String,
-    required: true,
+    required: false,
   },
   refNo: {
     type: String,
-    required: true,
+    required: false,
   },
   TenderId: {
     type: String,
-    required: true,
+    required: false,
   },
   district: {
     type: String,
-    required: true,
+    required: false,
   },
   state: {
     type: String,
-    required: true,
+    required: false,
   },
   department: {
     type: String,
-    required: true,
+    required: false,
   },
   subDepartment: {
     type: String,
