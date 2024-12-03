@@ -358,7 +358,7 @@ tenderRoute.post(
   authenticateUser,
   async (req: any, res: Response) => {
     const { tenderId } = req.body;
-
+    console.log(tenderId, req.user);
     const userId = req.user.userId || "34234234343434";
 
     if (!tenderId || !userId) {
@@ -370,12 +370,12 @@ tenderRoute.post(
     try {
       const tenderMapping = new TenderMapping({ tenderId, userId });
       await tenderMapping.save();
-      res.status(201).json({
+      return res.status(200).json({
         message: "Tender mapping created successfully.",
         result: tenderMapping,
       });
     } catch (error) {
-      res
+      return res
         .status(500)
         .json({ message: "Error creating tender mapping.", error });
     }
@@ -384,8 +384,9 @@ tenderRoute.post(
 
 tenderRoute.get("/tender-mapping", async (req: Request, res: Response) => {
   try {
-    const mappings = await TenderMapping.find({})
-      .populate("tenderId userId")
+    const mappings = await TenderMapping.find()
+      .populate("tenderId")
+      .populate("userId")
       .sort({ createdAt: -1 });
     res.status(200).json({ mappings });
   } catch (error) {
@@ -395,9 +396,43 @@ tenderRoute.get("/tender-mapping", async (req: Request, res: Response) => {
   }
 });
 
+// Update tender mapping route
+tenderRoute.patch(
+  "/tender-mapping/:id/note",
+
+  async (req: any, res: Response) => {
+    console.log("received");
+    const { id } = req.params;
+    const { note } = req.body;
+
+    try {
+      const tenderMapping = await TenderMapping.findByIdAndUpdate(
+        id,
+        { note },
+        { new: true }
+      );
+
+      if (!tenderMapping) {
+        return res.status(404).json({ message: "Tender mapping not found" });
+      }
+
+      return res.status(200).json({
+        message: "Note added successfully",
+        result: tenderMapping,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        message: "Error adding note to tender mapping",
+        error,
+      });
+    }
+  }
+);
+
 tenderRoute.post("/contact", async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, companyName, message, type } = req.body;
+    const { firstName, lastName, email, companyName, message, type, subject } =
+      req.body;
     const contact = new contactModel({
       firstName,
       lastName,
@@ -405,6 +440,7 @@ tenderRoute.post("/contact", async (req: Request, res: Response) => {
       companyName,
       message,
       type,
+      subject,
     });
 
     await contact.save();
@@ -436,5 +472,72 @@ tenderRoute.get("/contact", async (req: Request, res: Response) => {
     });
   }
 });
+
+tenderRoute.delete(
+  "/contactDelete/:id",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      // Find and delete the contact by ID
+      const deletedContact = await contactModel.findByIdAndDelete(id);
+
+      if (!deletedContact) {
+        return res.status(404).json({
+          message: "Contact not found.",
+          code: 404,
+        });
+      }
+
+      res.status(200).json({
+        message: "Contact deleted successfully.",
+        contact: deletedContact,
+        code: 200,
+      });
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      res.status(500).json({
+        message: "Error deleting contact. Please try again.",
+        error: error.message,
+        code: 500,
+      });
+    }
+  }
+);
+
+tenderRoute.patch(
+  "/contactMarkAsContacted/:id",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Find the contact and update its type to "contacted"
+      const updatedContact = await contactModel.findByIdAndUpdate(
+        id,
+        { type: "contacted" },
+        { new: true } // Return the updated document
+      );
+
+      if (!updatedContact) {
+        return res.status(404).json({
+          message: "Contact not found.",
+          code: 404,
+        });
+      }
+
+      res.status(200).json({
+        message: "Contact marked as contacted successfully.",
+        contact: updatedContact,
+        code: 200,
+      });
+    } catch (error) {
+      console.error("Error marking contact as contacted:", error);
+      res.status(500).json({
+        message: "Error marking contact as contacted. Please try again.",
+        error: error.message,
+        code: 500,
+      });
+    }
+  }
+);
 
 module.exports = tenderRoute;
