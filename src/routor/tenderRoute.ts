@@ -9,6 +9,24 @@ const generateRandomNumber = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1) + min);
 };
 
+// Authentication middleware for all API routes
+const authenticateUser = (req: any, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(" ")[1]; // Get token from header
+
+  if (!token) {
+    return res.status(401).json({ message: "No token provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, "secretkey"); // Verify token
+    req.user = { userId: (decoded as { userId: string }).userId }; // Attach userId to req.user
+    next(); // Proceed to next middleware or route handler
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    return res.status(401).json({ message: "Invalid token." });
+  }
+};
+
 tenderRoute.post("/create", async (req: Request, res: Response) => {
   try {
     let TenderId;
@@ -42,23 +60,6 @@ tenderRoute.post("/create", async (req: Request, res: Response) => {
     res.status(500).send("Error creating tender. Please try again.");
   }
 });
-// Authentication middleware for all API routes
-const authenticateUser = (req: any, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(" ")[1]; // Get token from header
-
-  if (!token) {
-    return res.status(401).json({ message: "No token provided." });
-  }
-
-  try {
-    const decoded = jwt.verify(token, "secretkey"); // Verify token
-    req.user = { userId: (decoded as { userId: string }).userId }; // Attach userId to req.user
-    next(); // Proceed to next middleware or route handler
-  } catch (error) {
-    console.error("Token verification failed:", error);
-    return res.status(401).json({ message: "Invalid token." });
-  }
-};
 
 tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
   try {
