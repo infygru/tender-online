@@ -132,6 +132,8 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
       classification,
       startDate,
       endDate,
+      limit,
+      offset,
     } = req.query;
 
     const filter: any = {};
@@ -242,12 +244,20 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         filter.$or = [{ bidSubmissionDate: { $gte: start, $lte: end } }];
       }
     }
+    const query = Tender.find(filter);
 
-    const tenders = await Tender.find(filter);
+    // Only apply pagination if both limit and offset are provided
+    if (limit && offset) {
+      query.skip(Number(offset)).limit(Number(limit));
+    }
+
+    const tenders = await query;
+    const count = await Tender.countDocuments(filter);
 
     res.status(200).json({
       message: "Tenders fetched successfully.",
       result: tenders,
+      count,
       code: 200,
     });
   } catch (error) {
