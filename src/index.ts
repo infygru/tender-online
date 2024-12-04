@@ -8,9 +8,7 @@ const routor = require("./routor/route");
 
 dotenv.config();
 
-const MONGODB_URI =
-  // "mongodb+srv://gokul:UPw3fCb6kDmF5CsE@cluster0.klfb9oe.mongodb.net/tender?retryWrites=true&w=majority";  //original URL
-  "mongodb+srv://fact-check-central:mqWCg161HpnDfWbT@cluster0.l1kcoiw.mongodb.net/tender";
+const MONGODB_URI = process.env.MONGODB_URI;
 mongoose.connect(MONGODB_URI, {});
 
 const connectToMongoDB = mongoose.connection;
