@@ -22,6 +22,7 @@ export interface TenderDocument extends Document {
   classification?: string;
   EMDAmountin?: string;
   WorkDescription?: string;
+  source?: string;
 }
 
 const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
@@ -106,6 +107,10 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
     required: false,
   },
   WorkDescription: {
+    type: String,
+    required: false,
+  },
+  source: {
     type: String,
     required: false,
   },

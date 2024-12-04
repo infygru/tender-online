@@ -92,6 +92,7 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
             classification: tender["Classification"] || "",
             EMDAmountin: tender["EMDAmountin₹"] || "",
             WorkDescription: tender["WorkDescription"] || "",
+            source: tender["Source"] || "",
           },
         },
         upsert: true,
