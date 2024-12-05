@@ -408,7 +408,6 @@ tenderRoute.get("/tender-mapping", async (req: Request, res: Response) => {
   }
 });
 
-// Update tender mapping route
 tenderRoute.patch(
   "/tender-mapping/:id/note",
 
@@ -443,8 +442,16 @@ tenderRoute.patch(
 
 tenderRoute.post("/contact", async (req: Request, res: Response) => {
   try {
-    const { firstName, lastName, email, companyName, message, type, subject } =
-      req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      companyName,
+      message,
+      type,
+      subject,
+      remarks,
+    } = req.body;
     const contact = new contactModel({
       firstName,
       lastName,
@@ -453,6 +460,7 @@ tenderRoute.post("/contact", async (req: Request, res: Response) => {
       message,
       type,
       subject,
+      remarks,
     });
 
     await contact.save();
@@ -484,6 +492,40 @@ tenderRoute.get("/contact", async (req: Request, res: Response) => {
     });
   }
 });
+
+tenderRoute.patch(
+  "/contactUpdateRemarks/:id",
+  async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { remarks } = req.body;
+
+      const updatedContact = await contactModel.findByIdAndUpdate(id, {
+        remarks,
+      });
+      console.log(remarks, updatedContact);
+      if (!updatedContact) {
+        return res.status(404).json({
+          message: "Contact not found.",
+          code: 404,
+        });
+      }
+
+      res.status(200).json({
+        message: "Remarks updated successfully.",
+        contact: updatedContact,
+        code: 200,
+      });
+    } catch (error) {
+      console.error("Error updating remarks:", error);
+      res.status(500).json({
+        message: "Error updating remarks. Please try again.",
+        error: error.message,
+        code: 500,
+      });
+    }
+  }
+);
 
 tenderRoute.delete(
   "/contactDelete/:id",

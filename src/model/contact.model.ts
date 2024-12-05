@@ -10,6 +10,7 @@ export interface IContact extends Document {
   clientId?: string;
   subject?: string;
   phoneNumber?: string;
+  remarks?: string;
 }
 
 const ContactSchema: Schema = new Schema(
@@ -23,6 +24,7 @@ const ContactSchema: Schema = new Schema(
     clientId: { type: String },
     subject: { type: String },
     phoneNumber: { type: String },
+    remarks: { type: String, default: "" },
   },
   {
     timestamps: true,
