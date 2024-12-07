@@ -20,7 +20,7 @@ const ContactSchema: Schema = new Schema(
     email: { type: String, required: false },
     companyName: { type: String },
     message: { type: String, required: false },
-    type: { type: String, default: "support" },
+    type: { type: String },
     clientId: { type: String },
     subject: { type: String },
     phoneNumber: { type: String },

@@ -607,15 +607,15 @@ tenderRoute.delete(
 );
 
 tenderRoute.patch(
-  "/contactMarkAsContacted/:id",
+  "/contactMarkAsContacted/:id/:type",
   async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
+      const { id, type } = req.params;
 
       // Find the contact and update its type to "contacted"
       const updatedContact = await contactModel.findByIdAndUpdate(
         id,
-        { type: "contacted" },
+        { type },
         { new: true } // Return the updated document
       );
 
