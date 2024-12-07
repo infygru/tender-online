@@ -134,6 +134,8 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
       endDate,
       limit,
       offset,
+      sortBy,
+      sortOrder,
     } = req.query;
 
     const filter: any = {};
@@ -246,7 +248,29 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
     }
     const query = Tender.find(filter);
 
-    // Only apply pagination if both limit and offset are provided
+    if (sortBy) {
+      const sortOptions: any = {};
+
+      switch (sortBy) {
+        case "tenderValue":
+          sortOptions.tenderValue = sortOrder === "desc" ? -1 : 1;
+          break;
+        case "epublishedDate":
+          sortOptions.epublishedDate = sortOrder === "desc" ? -1 : 1;
+          break;
+        case "bidSubmissionDate":
+          sortOptions.bidSubmissionDate = sortOrder === "desc" ? -1 : 1;
+          break;
+        case "bidOpeningDate":
+          sortOptions.bidOpeningDate = sortOrder === "desc" ? -1 : 1;
+          break;
+        default:
+          sortOptions._id = 1;
+      }
+
+      query.sort(sortOptions);
+    }
+
     if (limit && offset) {
       query.skip(Number(offset)).limit(Number(limit));
     }
