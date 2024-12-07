@@ -858,6 +858,14 @@ userRoute.get("/keyword", authenticateUser, async (req: any, res: Response) => {
   }
 });
 
+userRoute.get("/allUsersKeywords", async (req: any, res: Response) => {
+  const user = await User.find();
+  return res.status(200).send({
+    message: "All user keyword list.",
+    user,
+  });
+});
+
 // message improvement
 
 userRoute.post(
