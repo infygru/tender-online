@@ -316,6 +316,30 @@ tenderRoute.get("/industries", async (req: Request, res: Response) => {
     });
   }
 });
+tenderRoute.get("/classifications", async (req: Request, res: Response) => {
+  try {
+    const classifications = await Tender.distinct("classification");
+
+    const formattedClassifications = classifications.map(
+      (classification, index) => ({
+        value: classification.toLowerCase(),
+        label: classification,
+      })
+    );
+
+    res.status(200).json({
+      message: "Classifications fetched successfully.",
+      classifications: formattedClassifications,
+      code: 200,
+    });
+  } catch (error) {
+    console.error("Error fetching classifications:", error);
+    res.status(500).json({
+      message: "Error fetching classifications. Please try again.",
+      error: error.message,
+    });
+  }
+});
 
 tenderRoute.get("/sub-industries", async (req: Request, res: Response) => {
   try {
