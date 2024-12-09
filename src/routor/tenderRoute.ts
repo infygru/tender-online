@@ -88,7 +88,7 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
             bidOpeningDate: tender["BidOpeningDate"],
             bidSubmissionDate: tender["BidSubmissionEndDate"],
             industry: tender["Industry"] || "",
-            subIndustry: tender["Sub-Industry"] || "",
+            subIndustry: tender["       ry"] || "",
             classification: tender["Classification"] || "",
             EMDAmountin: tender["EMDAmountin₹"] || "",
             WorkDescription: tender["WorkDescription"] || "",
@@ -187,8 +187,10 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         },
         { value: "4", label: "More than ₹100Cr", minValue: 1000000000 },
       ];
-
-      const tenderValueArray = (tenderValue as string).split(",");
+      console.log(tenderValue);
+      const tenderValueArray = Array.isArray(tenderValue)
+        ? tenderValue
+        : [tenderValue];
       const tenderValueFilters: any[] = [];
 
       tenderValueArray.forEach((value) => {
