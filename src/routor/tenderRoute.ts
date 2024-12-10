@@ -84,7 +84,10 @@ tenderRoute.post("/upload/bulk", async (req: Request, res: Response) => {
             location: tender["Location"],
             address: tender["Address"],
             pincode: parseInt(tender["Pincode"]),
-            tenderValue: tender["TenderValue(₹)"].split(",").join(""),
+            tenderValue: tender["TenderValue(₹)"]
+              .replace(/[^\d]/g, "")
+              .split(",")
+              .join(""),
             bidOpeningDate: tender["BidOpeningDate"],
             bidSubmissionDate: tender["BidSubmissionEndDate"],
             industry: tender["Industry"] || "",
@@ -187,7 +190,6 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         },
         { value: "4", label: "More than ₹100Cr", minValue: 1000000000 },
       ];
-      console.log(tenderValue);
       const tenderValueArray = Array.isArray(tenderValue)
         ? tenderValue
         : [tenderValue];

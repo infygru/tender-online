@@ -6,7 +6,7 @@ export interface TenderDocument extends Document {
   epublishedDate: string;
   bidSubmissionDate: Date;
   bidOpeningDate: Date;
-  tenderValue: string;
+  tenderValue: number;
   refNo: string;
   TenderId: string;
   district: string;
@@ -47,7 +47,7 @@ const tenderSchema: Schema<TenderDocument> = new mongoose.Schema({
     required: false,
   },
   tenderValue: {
-    type: String,
+    type: Number,
     required: false,
   },
   refNo: {
