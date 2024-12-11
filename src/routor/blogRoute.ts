@@ -32,11 +32,32 @@ const upload = multer({
       cb(null, Date.now().toString() + "-" + file.originalname);
     },
   }),
+  fileFilter: function (req: any, file: any, cb: any) {
+    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (validTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type"), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
 });
+
+const uploadFields = upload.fields([
+  { name: "featuredImage", maxCount: 1 },
+  { name: "title", maxCount: 1 },
+  { name: "description", maxCount: 1 },
+  { name: "tags", maxCount: 1 },
+  { name: "author", maxCount: 1 },
+  { name: "introduction", maxCount: 1 },
+  { name: "conclusion", maxCount: 1 },
+]);
+
 interface BlogPost {
   title?: string;
-  featureImg1?: string;
-  featureImg2?: string;
+  featuredImage?: string;
   description?: string;
   tags?: string[];
   author?: string;
@@ -46,11 +67,9 @@ interface BlogPost {
   CreatedAt?: Date;
 }
 
-// Define a Mongoose schema for the blog post
 const blogPostSchema = new mongoose.Schema<BlogPost>({
   title: { type: String },
-  featureImg1: { type: String, default: "" },
-  featureImg2: { type: String, default: "" },
+  featuredImage: { type: String },
   description: { type: String },
   tags: { type: [String] },
   author: { type: String },
@@ -60,8 +79,8 @@ const blogPostSchema = new mongoose.Schema<BlogPost>({
   CreatedAt: { type: Date, default: Date.now },
 });
 
-// Create a Mongoose model based on the schema
 const BlogPostModel = mongoose.model<BlogPost>("BlogPost", blogPostSchema);
+
 blogRoute.post(
   "/:blogId",
   upload.single("img"),
@@ -71,36 +90,24 @@ blogRoute.post(
 );
 blogRoute.post(
   "/",
-  upload.array("files", 3),
+  uploadFields,
+
   async (req: any, res: Response) => {
-    const {
-      title,
-      description,
-      tags,
-      author,
-      introduction,
-      conclusion,
-      postContent,
-    } = req.body;
-    const files = req.files;
-    console.log(files);
-
-    // if (!title || !description || !tags || !author) {
-    //   return res.status(400).json({ error: "All fields are required." });
-    // }
-
     try {
-      // Create a new blog post using the Mongoose model
+      const { title, description, tags, author, introduction, conclusion } =
+        req.body;
+      const featuredImageUrl =
+        req.files && req.files["featuredImage"]
+          ? req.files["featuredImage"][0].location
+          : null;
       const newPost = await BlogPostModel.create({
         title,
-        featureImg1: files[0]?.location || "demo",
-        featureImg2: files[1]?.location || "demo",
         description,
-        tags,
+        featuredImage: featuredImageUrl,
+        tags: tags ? tags.split(",").map((tag: string) => tag.trim()) : [],
         author,
         introduction,
         conclusion,
-        postContent,
       });
 
       res.status(201).json({
@@ -136,10 +143,8 @@ blogRoute.get("/:id", async (req: Request, res: Response) => {
     if (!post) {
       return res.status(404).json({ error: "Blog post not found" });
     }
-    const JSONPosrContent = JSON.parse(post?.postContent.join(" "));
-    console.log(JSONPosrContent, "JSONPosrContent");
 
-    res.json([post, JSONPosrContent]);
+    res.status(200).json(post);
   } catch (error) {
     console.error("Error fetching blog post by ID:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -182,5 +187,48 @@ blogRoute.get("/search", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+blogRoute.put(
+  "/:id",
+  upload.single("featuredImage"),
+  async (req: any, res: Response) => {
+    const postId = req.params.id;
+    try {
+      // Prepare update object
+      const updateData: any = {
+        title: req.body.title,
+        description: req.body.description,
+        tags: req.body.tags
+          ? req.body.tags.split(",").map((tag: string) => tag.trim())
+          : [],
+        author: req.body.author,
+      };
+
+      // If a new image was uploaded, add its URL to the update
+      if (req.file) {
+        updateData.featuredImage = req.file.location;
+      }
+
+      // Find and update the blog post
+      const updatedPost = await BlogPostModel.findByIdAndUpdate(
+        postId,
+        updateData,
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedPost) {
+        return res.status(404).json({ error: "Blog post not found" });
+      }
+
+      res.status(200).json({
+        message: "Blog post updated successfully!",
+        post: updatedPost,
+      });
+    } catch (error) {
+      console.error("Error updating blog post:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
 
 module.exports = blogRoute;
