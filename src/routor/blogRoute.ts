@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { Request, Response } from "express";
 import multer from "multer";
 import multerS3 from "multer-s3";
-import { S3Client } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 const blogRoute = express.Router();
 require("dotenv").config();
@@ -155,13 +155,34 @@ blogRoute.delete("/:id", async (req: any, res: any) => {
   const postId = req.params.id;
 
   try {
-    const post = await BlogPostModel.findByIdAndDelete(postId);
+    const post = await BlogPostModel.findById(postId);
 
     if (!post) {
       return res.status(404).json({ error: "Blog post not found" });
     }
 
-    res.status(204).end(); // 204 No Content (successful deletion)
+    if (post.featuredImage) {
+      try {
+        const imageKey = post.featuredImage
+          ? decodeURIComponent(
+              new URL(post.featuredImage).pathname.split("/").pop() || ""
+            )
+          : null;
+
+        const deleteParams = {
+          Bucket: bucketName,
+          Key: imageKey,
+        };
+
+        await s3Client.send(new DeleteObjectCommand(deleteParams));
+      } catch (s3Error) {
+        console.error("Error deleting image from S3:", s3Error);
+      }
+    }
+
+    await BlogPostModel.findByIdAndDelete(postId);
+
+    res.status(204).end();
   } catch (error) {
     console.error("Error deleting blog post by ID:", error);
     res.status(500).json({ error: "Internal server error" });
