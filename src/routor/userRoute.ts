@@ -19,11 +19,11 @@ const razorpay = new Razorpay({
 const getTotalCount = (duration: string) => {
   switch (duration) {
     case "Per Month":
-      return 12;
+      return 24;
     case "Per Half Year":
-      return 6;
+      return 4;
     case "Per Year":
-      return 12;
+      return 2;
     default:
       throw new Error("Invalid duration");
   }
@@ -202,81 +202,6 @@ userRoute.post("/create/account/google", async (req: any, res: any) => {
 });
 
 userRoute.post(
-  "/subscribe/newsletter",
-  authenticateUser,
-  async (req: any, res: any) => {
-    const { subscriptionId, amount, duration, planId } = req.body;
-    const userId = req.user.userId;
-    try {
-      const user = await User.findById(userId);
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      let validityDuration;
-      switch (duration) {
-        case "Per Month":
-          validityDuration = 30;
-          break;
-        case "Per Half Year":
-          validityDuration = 182;
-          break;
-        case "Per Year":
-          validityDuration = 365;
-          break;
-        default:
-          return res.status(400).json({ message: "Invalid duration value" });
-      }
-
-      let subscriptionValidity = new Date();
-
-      if (user.subscriptionValidity && user.subscriptionValidity > new Date()) {
-        subscriptionValidity = new Date(user.subscriptionValidity);
-      }
-
-      subscriptionValidity.setDate(
-        subscriptionValidity.getDate() + validityDuration
-      );
-
-      if (isNaN(subscriptionValidity.getTime())) {
-        return res
-          .status(400)
-          .json({ message: "Invalid subscription validity date" });
-      }
-
-      user.isPayment = true;
-      user.paymentStatus = "Completed";
-      user.subscriptionValidity = subscriptionValidity;
-      user.currentSubscriptionId = subscriptionId;
-      user.currentSubscriptionPlanId = planId;
-      user.subscriptionAmount = amount;
-      user.lastSubscriptionDate = new Date();
-
-      user.subscriptionHistory.push({
-        subscriptionId,
-        planId,
-        amount,
-        duration,
-        subscriptionDate: new Date(),
-        validUntil: subscriptionValidity,
-      });
-
-      await user.save();
-
-      res.status(200).json({
-        message: "Subscription successful",
-        subscriptionValidity,
-        subscriptionId,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "An error occurred", error });
-    }
-  }
-);
-
-userRoute.post(
   "/create-subscription",
   authenticateUser,
   async (req: any, res: any) => {
@@ -316,75 +241,67 @@ userRoute.post(
   "/subscribe/newsletter",
   authenticateUser,
   async (req: any, res: any) => {
-    const { subscriptionId, amount, duration, planId } = req.body;
+    const { subscriptionId } = req.body;
     const userId = req.user.userId;
 
     try {
       const subscription = await razorpay.subscriptions.fetch(subscriptionId);
-
-      if (subscription.status !== "active") {
-        return res.status(400).json({
-          message: "Subscription is not active",
-          status: subscription.status,
-        });
-      }
 
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      let validityDuration;
-      switch (duration) {
-        case "Per Month":
-          validityDuration = 30;
-          break;
-        case "Per Half Year":
-          validityDuration = 182;
-          break;
-        case "Per Year":
-          validityDuration = 365;
-          break;
-        default:
-          return res.status(400).json({ message: "Invalid duration value" });
-      }
+      // let validityDuration;
+      // switch (duration) {
+      //   case "Per Month":
+      //     validityDuration = 30;
+      //     break;
+      //   case "Per Half Year":
+      //     validityDuration = 182;
+      //     break;
+      //   case "Per Year":
+      //     validityDuration = 365;
+      //     break;
+      //   default:
+      //     return res.status(400).json({ message: "Invalid duration value" });
+      // }
 
-      let subscriptionValidity = new Date();
-      if (user.subscriptionValidity && user.subscriptionValidity > new Date()) {
-        subscriptionValidity = new Date(user.subscriptionValidity);
-      }
-      subscriptionValidity.setDate(
-        subscriptionValidity.getDate() + validityDuration
-      );
+      // let subscriptionValidity = new Date();
+      // if (user.subscriptionValidity && user.subscriptionValidity > new Date()) {
+      //   subscriptionValidity = new Date(user.subscriptionValidity);
+      // }
+      // subscriptionValidity.setDate(
+      //   subscriptionValidity.getDate() + validityDuration
+      // );
 
-      if (isNaN(subscriptionValidity.getTime())) {
-        return res
-          .status(400)
-          .json({ message: "Invalid subscription validity date" });
-      }
+      // if (isNaN(subscriptionValidity.getTime())) {
+      //   return res
+      //     .status(400)
+      //     .json({ message: "Invalid subscription validity date" });
+      // }
 
-      user.isPayment = true;
-      user.paymentStatus = "Completed";
-      user.subscriptionValidity = subscriptionValidity;
+      // user.isPayment = true;
+      // user.paymentStatus = "Completed";
+      // user.subscriptionValidity = subscriptionValidity;
       user.currentSubscriptionId = subscriptionId;
-      user.currentSubscriptionPlanId = planId;
-      user.subscriptionAmount = amount;
-      user.lastSubscriptionDate = new Date();
+      // user.currentSubscriptionPlanId = planId;
+      // user.subscriptionAmount = amount;
+      // user.lastSubscriptionDate = new Date();
 
-      user.subscriptionHistory.push({
-        subscriptionId,
-        planId,
-        amount,
-        duration,
-        subscriptionDate: new Date(),
-        validUntil: subscriptionValidity,
-      });
+      // user.subscriptionHistory.push({
+      //   subscriptionId,
+      //   planId,
+      //   amount,
+      //   duration,
+      //   subscriptionDate: new Date(),
+      //   validUntil: subscriptionValidity,
+      // });
 
       await user.save();
 
-      res.status(200).json({
+      res.status(201).json({
         message: "Subscription successful",
-        subscriptionValidity,
         subscriptionId,
       });
     } catch (error) {
