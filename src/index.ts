@@ -64,6 +64,6 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // Start the server
-app.listen(port, () => {
+app.listen(4500, "0.0.0.0", () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
 });
