@@ -41,7 +41,7 @@ const updateUserSubscriptionStatus = async (user, subscription, status) => {
 const handleSubscriptionCharged = async (subscription) => {
   try {
     if (!subscription?.id) {
-      throw new Error("Invalid subscription ID");
+      return console.log("Invalid subscription ID");
     }
 
     const user = await User.findOne({
@@ -49,12 +49,14 @@ const handleSubscriptionCharged = async (subscription) => {
     });
 
     if (!user) {
-      throw new Error(`User not found for subscription ID: ${subscription.id}`);
+      return console.log(
+        `User not found for subscription ID: ${subscription.id}`
+      );
     }
 
     const duration = subscription.notes?.duration;
     if (!duration) {
-      throw new Error("Duration not found in subscription notes");
+      return console.log("Duration not found in subscription notes");
     }
 
     let paymentAmount;
@@ -65,20 +67,20 @@ const handleSubscriptionCharged = async (subscription) => {
       });
 
       if (!invoices || !invoices.items || invoices.items.length === 0) {
-        throw new Error("No invoice found for subscription");
+        return console.log("No invoice found for subscription");
       }
 
       const latestInvoice = invoices.items[0];
       paymentAmount = latestInvoice.amount;
 
       if (!paymentAmount || isNaN(paymentAmount)) {
-        throw new Error(
+        return console.log(
           `Invalid payment amount from invoice: ${paymentAmount}`
         );
       }
     } catch (error) {
       console.error("Error fetching invoice:", error);
-      throw new Error(`Failed to fetch payment details: ${error.message}`);
+      return console.log(`Failed to fetch payment details: ${error.message}`);
     }
 
     const amountInRupees = Math.round((paymentAmount / 100) * 100) / 100;
@@ -95,7 +97,7 @@ const handleSubscriptionCharged = async (subscription) => {
         validityDuration = 365;
         break;
       default:
-        throw new Error(`Invalid duration: ${duration}`);
+        return console.log(`Invalid duration: ${duration}`);
     }
 
     const newValidity = new Date();
@@ -131,7 +133,7 @@ const handleSubscriptionCharged = async (subscription) => {
     );
 
     if (!updateResult) {
-      throw new Error("Failed to update user subscription");
+      return console.log("Failed to update user subscription");
     }
 
     console.log(`Successfully processed subscription for user ${user._id}`, {
@@ -159,13 +161,12 @@ const handleSubscriptionPending = async (subscription) => {
     });
 
     if (!user) {
-      throw new Error("User not found for subscription");
+      return console.log("User not found for subscription");
     }
 
     await updateUserSubscriptionStatus(user, subscription, "Pending");
   } catch (error) {
     console.error("Error processing pending subscription:", error);
-    await logError("subscription_pending_processing", error);
   }
 };
 
@@ -176,13 +177,12 @@ const handleSubscriptionHalted = async (subscription) => {
     });
 
     if (!user) {
-      throw new Error("User not found for subscription");
+      return console.log("User not found for subscription");
     }
 
     await updateUserSubscriptionStatus(user, subscription, "Failed");
   } catch (error) {
     console.error("Error processing halted subscription:", error);
-    await logError("subscription_halted_processing", error);
   }
 };
 
@@ -193,13 +193,12 @@ const handleSubscriptionCancelled = async (subscription) => {
     });
 
     if (!user) {
-      throw new Error("User not found for subscription");
+      return console.log("User not found for subscription");
     }
 
     await updateUserSubscriptionStatus(user, subscription, "Cancelled");
   } catch (error) {
     console.error("Error processing cancelled subscription:", error);
-    await logError("subscription_cancelled_processing", error);
   }
 };
 
@@ -236,12 +235,10 @@ const checkExpiringSubscriptions = async () => {
           `Error checking subscription for user ${user._id}:`,
           error
         );
-        await logError("subscription_check", error);
       }
     }
   } catch (error) {
     console.error("Error in subscription check cron:", error);
-    await logError("subscription_check_cron", error);
   }
 };
 
