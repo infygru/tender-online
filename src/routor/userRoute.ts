@@ -9,6 +9,26 @@ import bannerModel from "../model/banner.model";
 import TenderMapping from "../model/tender.mapping.model";
 import TransactionModel from "../model/tender.priceing.model";
 const { transporter } = require("../nodemailer");
+import Razorpay from "razorpay";
+
+const razorpay = new Razorpay({
+  key_id: process.env.NEXT_PUBLIC_RAZOR_API_KEY,
+  key_secret: process.env.NEXT_PUBLIC_RAZOR_API_SECRET,
+});
+
+const getTotalCount = (duration: string) => {
+  switch (duration) {
+    case "Per Month":
+      return 12;
+    case "Per Half Year":
+      return 6;
+    case "Per Year":
+      return 12;
+    default:
+      throw new Error("Invalid duration");
+  }
+};
+
 const authenticateUser = (req: any, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(" ")[1]; // Get token from header
 
@@ -182,14 +202,12 @@ userRoute.post("/create/account/google", async (req: any, res: any) => {
 });
 
 userRoute.post(
-  "/success/payment",
+  "/subscribe/newsletter",
   authenticateUser,
   async (req: any, res: any) => {
-    const { paymentId, amount, duration } = req.body;
+    const { subscriptionId, amount, duration, planId } = req.body;
     const userId = req.user.userId;
-
     try {
-      // Find the user and update payment status
       const user = await User.findById(userId);
 
       if (!user) {
@@ -197,47 +215,59 @@ userRoute.post(
       }
 
       let validityDuration;
-      if (duration === "Per Month") {
-        validityDuration = 30;
-      } else if (duration === "Per Half Year") {
-        validityDuration = 182;
-      } else if (duration === "Per Year") {
-        validityDuration = 365;
-      } else {
-        return res.status(400).json({ message: "Invalid duration value" });
+      switch (duration) {
+        case "Per Month":
+          validityDuration = 30;
+          break;
+        case "Per Half Year":
+          validityDuration = 182;
+          break;
+        case "Per Year":
+          validityDuration = 365;
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid duration value" });
       }
 
-      // Calculate the new subscription validity date
       let subscriptionValidity = new Date();
 
-      // Check if the current subscription is still valid
       if (user.subscriptionValidity && user.subscriptionValidity > new Date()) {
-        // If the existing subscription is valid, extend it from the current subscriptionValidity
         subscriptionValidity = new Date(user.subscriptionValidity);
       }
 
-      // Extend the subscription by adding the validity duration
       subscriptionValidity.setDate(
         subscriptionValidity.getDate() + validityDuration
       );
 
-      // Validate if subscriptionValidity is a valid date
       if (isNaN(subscriptionValidity.getTime())) {
         return res
           .status(400)
           .json({ message: "Invalid subscription validity date" });
       }
 
-      // Update user payment status and subscription validity
       user.isPayment = true;
       user.paymentStatus = "Completed";
       user.subscriptionValidity = subscriptionValidity;
+      user.currentSubscriptionId = subscriptionId;
+      user.currentSubscriptionPlanId = planId;
+      user.subscriptionAmount = amount;
+      user.lastSubscriptionDate = new Date();
+
+      user.subscriptionHistory.push({
+        subscriptionId,
+        planId,
+        amount,
+        duration,
+        subscriptionDate: new Date(),
+        validUntil: subscriptionValidity,
+      });
 
       await user.save();
 
       res.status(200).json({
-        message: "Payment successful",
+        message: "Subscription successful",
         subscriptionValidity,
+        subscriptionId,
       });
     } catch (error) {
       console.error(error);
@@ -247,37 +277,125 @@ userRoute.post(
 );
 
 userRoute.post(
-  "/payment/success/executive",
+  "/create-subscription",
   authenticateUser,
-  async (req: any, res: Response) => {
+  async (req: any, res: any) => {
+    const { planId, duration } = req.body;
+    const userId = req.user.userId;
+
     try {
-      const userId = req?.user?.userId;
-      console.log(userId, "userId");
-
-      const { amount_received, payment_method, content } = req.body;
-
-      const transaction = new TransactionModel({
-        userId,
-        amount_received,
-        price: amount_received,
-        payment_method,
-        total_amount_paid: amount_received,
-        transaction_status: "Completed",
-        discount_applied: 0.0,
-        tax_amount: 0.0,
-        content,
+      const subscription = await razorpay.subscriptions.create({
+        plan_id: planId,
+        total_count: getTotalCount(duration),
+        customer_notify: 1,
+        notes: {
+          user_id: userId,
+          duration: duration,
+        },
       });
-
-      await transaction.save();
-
       res.status(200).json({
-        code: 200,
-        message: "Payment successful",
-        transaction,
+        subscriptionId: subscription.id,
+        shortUrl: subscription.short_url,
+        status: subscription.status,
       });
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: "An error occurred", error });
+      console.error("Razorpay subscription creation error:", error);
+      res.status(error.statusCode || 500).json({
+        error: {
+          code: error.code || "INTERNAL_SERVER_ERROR",
+          description:
+            error.description ||
+            "An error occurred while creating the subscription",
+        },
+      });
+    }
+  }
+);
+
+userRoute.post(
+  "/subscribe/newsletter",
+  authenticateUser,
+  async (req: any, res: any) => {
+    const { subscriptionId, amount, duration, planId } = req.body;
+    const userId = req.user.userId;
+
+    try {
+      const subscription = await razorpay.subscriptions.fetch(subscriptionId);
+
+      if (subscription.status !== "active") {
+        return res.status(400).json({
+          message: "Subscription is not active",
+          status: subscription.status,
+        });
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let validityDuration;
+      switch (duration) {
+        case "Per Month":
+          validityDuration = 30;
+          break;
+        case "Per Half Year":
+          validityDuration = 182;
+          break;
+        case "Per Year":
+          validityDuration = 365;
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid duration value" });
+      }
+
+      let subscriptionValidity = new Date();
+      if (user.subscriptionValidity && user.subscriptionValidity > new Date()) {
+        subscriptionValidity = new Date(user.subscriptionValidity);
+      }
+      subscriptionValidity.setDate(
+        subscriptionValidity.getDate() + validityDuration
+      );
+
+      if (isNaN(subscriptionValidity.getTime())) {
+        return res
+          .status(400)
+          .json({ message: "Invalid subscription validity date" });
+      }
+
+      user.isPayment = true;
+      user.paymentStatus = "Completed";
+      user.subscriptionValidity = subscriptionValidity;
+      user.currentSubscriptionId = subscriptionId;
+      user.currentSubscriptionPlanId = planId;
+      user.subscriptionAmount = amount;
+      user.lastSubscriptionDate = new Date();
+
+      user.subscriptionHistory.push({
+        subscriptionId,
+        planId,
+        amount,
+        duration,
+        subscriptionDate: new Date(),
+        validUntil: subscriptionValidity,
+      });
+
+      await user.save();
+
+      res.status(200).json({
+        message: "Subscription successful",
+        subscriptionValidity,
+        subscriptionId,
+      });
+    } catch (error) {
+      console.error("Subscription verification error:", error);
+      res.status(500).json({
+        message: "An error occurred",
+        error: {
+          code: error.code || "INTERNAL_SERVER_ERROR",
+          description: error.description || "Failed to verify subscription",
+        },
+      });
     }
   }
 );
