@@ -9,5 +9,6 @@ router.use("/tender", require("./tenderRoute"));
 router.use("/ads", require("./adsRoute"));
 router.use("/blog", require("./blogRoute"));
 router.use("/email", require("./emailRoute"));
+router.use("/webhook", require("./webhook"));
 
 module.exports = router;
