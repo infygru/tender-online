@@ -10,6 +10,7 @@ import TenderMapping from "../model/tender.mapping.model";
 import TransactionModel from "../model/tender.priceing.model";
 const { transporter } = require("../nodemailer");
 import Razorpay from "razorpay";
+import TenderRequest from "../model/tenderRequest.model";
 
 const razorpay = new Razorpay({
   key_id: process.env.NEXT_PUBLIC_RAZOR_API_KEY,
@@ -108,6 +109,7 @@ userRoute.post("/create/account", async (req: any, res: any) => {
       isGoogleAuth,
       profile_image,
       clientId,
+      paymentStatus: "Free trial",
     });
 
     await newUser.save();
@@ -180,6 +182,7 @@ userRoute.post("/create/account/google", async (req: any, res: any) => {
       isGoogleAuth: true,
       password: "google", // Default password for Google-authenticated users
       clientId, // Add the generated client ID
+      paymentStatus: "Free trial",
     });
 
     await newUser.save();
@@ -207,7 +210,6 @@ userRoute.post(
   async (req: any, res: any) => {
     const { planId, duration } = req.body;
     const userId = req.user.userId;
-
     try {
       const subscription = await razorpay.subscriptions.create({
         plan_id: planId,
@@ -317,9 +319,62 @@ userRoute.post(
   }
 );
 
+userRoute.post(
+  "/payment/success/executive",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req?.user?.userId;
+
+      const { amount_received, payment_method, content } = req.body;
+
+      const transaction = new TransactionModel({
+        userId,
+        amount_received,
+        price: amount_received,
+        payment_method,
+        total_amount_paid: amount_received,
+        transaction_status: "Completed",
+        discount_applied: 0.0,
+        tax_amount: 0.0,
+        content,
+      });
+
+      await transaction.save();
+
+      res.status(200).json({
+        code: 200,
+        message: "Payment successful",
+        transaction,
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+);
+
 userRoute.get("/payment/transcation", async (req: Request, res: Response) => {
   try {
     const transactions = await TransactionModel.find({}).populate("userId");
+    res.status(200).send(transactions);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error getting transactions.");
+  }
+});
+
+userRoute.post("/payment/transcation", async (req: Request, res: Response) => {
+  try {
+    const user = await User.findOne({ clientId: req.body.clientId });
+    if (!user) {
+      return res.status(404).send("User not found.");
+    }
+
+    const transactions = await TransactionModel.find({
+      userId: user._id,
+    }).populate("userId");
+
     res.status(200).send(transactions);
   } catch (error) {
     console.error(error);
@@ -389,9 +444,17 @@ userRoute.get("/status", authenticateUser, async (req: any, res: Response) => {
     const freeTrialStart = user.subscriptionValidity || currentTime; // Use current time if no start time is set
     const tendersVisibleUntil = freeTrialStart;
     const isTendersVisible = tendersVisibleUntil > currentTime;
-
-    console.log(currentTime, "currentTime");
-    console.log(tendersVisibleUntil, "tendersVisibleUntil");
+    if (!isTendersVisible) {
+      await User.findOneAndUpdate(
+        {
+          _id: userId,
+        },
+        {
+          paymentStatus: "Free Trial Expired",
+        }
+      );
+      await user.save();
+    }
 
     res.status(200).json({
       userId: user._id,
@@ -616,7 +679,6 @@ userRoute.get(
       if (!user) {
         return res.status(404).send("User not found.");
       }
-
       if (user.classification && user.industry && user.state) {
         return res.status(200).send({
           message: "User has already added suggestions.",
@@ -793,6 +855,26 @@ userRoute.get(
       const userId = req.user.userId;
       const mappings = await TenderMapping.find({ userId })
         .populate("tenderId userId")
+        .sort({ createdAt: -1 });
+
+      res.status(200).json({ mappings });
+    } catch (error) {
+      console.log("Error retrieving mappings:", error);
+
+      res.status(500).json({ message: "Error retrieving mappings.", error });
+    }
+  }
+);
+
+userRoute.get(
+  "/me/tenderRequest",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    try {
+      const userId = req.user.userId;
+      const mappings = await TenderRequest.find({ userId })
+        .populate("tenderId")
+        .populate("userId")
         .sort({ createdAt: -1 });
 
       res.status(200).json({ mappings });
