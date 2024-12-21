@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Tender from "../model/tender.model";
 import TenderMapping from "../model/tender.mapping.model";
+import TenderRequest from "../model/tenderRequest.model";
 const express = require("express");
 const tenderRoute = express.Router();
 import jwt from "jsonwebtoken";
@@ -159,12 +160,17 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         { subIndustry: { $regex: keyword, $options: "i" } },
         { classification: { $regex: keyword, $options: "i" } },
         { status: { $regex: keyword, $options: "i" } },
-        { tenderValue: { $regex: keyword, $options: "i" } },
         { WorkDescription: { $regex: keyword, $options: "i" } },
-        { EMDAmountin: { $regex: keyword, $options: "i" } },
-        { pinCode: { $regex: keyword, $options: "i" } },
-        { TenderId: { $regex: keyword, $options: "i" } },
         { address: { $regex: keyword, $options: "i" } },
+
+        ...(isNaN(Number(keyword))
+          ? []
+          : [
+              { tenderValue: Number(keyword) },
+              { EMDAmountin: Number(keyword) },
+              { pinCode: Number(keyword) },
+              { TenderId: Number(keyword) },
+            ]),
       ]);
     }
 
@@ -208,53 +214,21 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         }
       });
 
-      if (tenderValueFilters.length > 0) filter.$or = tenderValueFilters;
-    }
-
-    if (industry) {
-      const industryArray = (industry as string).split(",");
-      filter.industry = { $in: industryArray.map((i) => new RegExp(i, "i")) };
-    }
-
-    if (subIndustry) {
-      const subIndustryArray = (subIndustry as string).split(",");
-      filter.subIndustry = {
-        $in: subIndustryArray.map((si) => new RegExp(si, "i")),
-      };
-    }
-
-    if (classification) {
-      const classificationArray = (classification as string).split(",");
-      filter.classification = {
-        $in: classificationArray.map((c) => new RegExp(c, "i")),
-      };
-    }
-
-    if (department) {
-      const departmentsArray = (department as string).split(",");
-      filter.department = {
-        $in: departmentsArray.map((d) => new RegExp(d, "i")),
-      };
-    }
-
-    if (status) {
-      const statusArray = (status as string).split(",");
-      filter.status = { $in: statusArray.map((s) => new RegExp(s, "i")) };
-    }
-
-    if (startDate && endDate) {
-      const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
-
-      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-        filter.$or = [{ bidSubmissionDate: { $gte: start, $lte: end } }];
+      if (tenderValueFilters.length > 0) {
+        // Preserve existing $or conditions if they exist
+        if (filter.$or) {
+          filter.$and = [{ $or: filter.$or }, { $or: tenderValueFilters }];
+          delete filter.$or;
+        } else {
+          filter.$or = tenderValueFilters;
+        }
       }
     }
+
     const query = Tender.find(filter);
 
     if (sortBy) {
       const sortOptions: any = {};
-
       switch (sortBy) {
         case "tenderValue":
           sortOptions.tenderValue = sortOrder === "desc" ? -1 : 1;
@@ -271,7 +245,6 @@ tenderRoute.get("/all", async (req: Request, res: Response) => {
         default:
           sortOptions._id = 1;
       }
-
       query.sort(sortOptions);
     }
 
@@ -418,6 +391,43 @@ tenderRoute.delete("/:id", async (req: any, res: Response) => {
 });
 
 tenderRoute.post(
+  "/tenderRequest",
+  authenticateUser,
+  async (req: any, res: Response) => {
+    const { data } = req.body;
+    const userId = req.user.userId;
+
+    const tenderReq = new TenderRequest({
+      tenderTitle: data.tenderName,
+      tenderId: data.TenderId,
+      district: data.district,
+      state: data.state,
+      location: data.location,
+      bidSubmissionDate: data.bidSubmissionDate,
+      tenderValue: data.tenderValue,
+      refNo: data.refNo,
+      industry: data.industry,
+      address: data.address,
+      userId,
+    });
+    await tenderReq.save();
+
+    return res.status(200).json({
+      message: "Tender mapping created successfully.",
+      result: tenderReq,
+    });
+  }
+);
+
+tenderRoute.get("/tenderRequest", async (req: any, res: Response) => {
+  const mappings = await TenderRequest.find()
+    .populate("tenderId")
+    .populate("userId")
+    .sort({ createdAt: -1 });
+  res.status(200).json({ mappings });
+});
+
+tenderRoute.post(
   "/tender-mapping",
   authenticateUser,
   async (req: any, res: Response) => {
@@ -442,6 +452,37 @@ tenderRoute.post(
       return res
         .status(500)
         .json({ message: "Error creating tender mapping.", error });
+    }
+  }
+);
+
+tenderRoute.patch(
+  "/tenderRequest/:id/note",
+
+  async (req: any, res: Response) => {
+    const { id } = req.params;
+    const { note } = req.body;
+
+    try {
+      const tenderMapping = await TenderRequest.findByIdAndUpdate(
+        id,
+        { note },
+        { new: true }
+      );
+
+      if (!tenderMapping) {
+        return res.status(404).json({ message: "Tender mapping not found" });
+      }
+
+      return res.status(200).json({
+        message: "Note added successfully",
+        result: tenderMapping,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        message: "Error adding note to tender mapping",
+        error,
+      });
     }
   }
 );
